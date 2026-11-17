@@ -1,5 +1,6 @@
 plugins {
-    kotlin("jvm") version "2.5.0-RC"
+    // IntelliJ 2025.3 同梱の Kotlin(2.3.x) が読めるのは 2.4 までなので、2.5 系にはしない
+    kotlin("jvm") version "2.4.21"
     id("com.gradleup.shadow") version "9.6.1"
     id("xyz.jpenilla.run-paper") version "3.1.0"
 }
