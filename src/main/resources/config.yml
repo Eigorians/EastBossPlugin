@@ -1,0 +1,7 @@
+# EastBossPlugin 設定ファイル
+
+# メッセージの先頭に付ける文字列（MiniMessage 形式）
+prefix: "<gray>[<gold>EastBoss</gold>]</gray> "
+
+# true にするとデバッグ用のログを出す
+debug: false

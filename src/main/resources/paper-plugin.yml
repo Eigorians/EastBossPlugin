@@ -1,0 +1,15 @@
+name: EastBossPlugin
+version: '${version}'
+
+main: com.eastcompany.eastsub.eastBossPlugin.EastBossPlugin
+api-version: '26.3'
+load: POSTWORLD
+
+dependencies:
+  server:
+    # BetterModel が無い場合、Paper はこのプラグインを読み込まない
+    BetterModel:
+      load: BEFORE
+      required: true
+      # BetterModel のクラスを参照するために必要
+      join-classpath: true
