@@ -1,0 +1,407 @@
+# ベイガー の設定
+# 時間はすべて tick（1秒 = 20tick）。技の tick は「技の開始から」の経過時間
+# 変更は /eb reload の後に召喚したボスから反映される
+
+# ===== 基本 =====
+# 表示名（MiniMessage 形式）
+name: "<dark_purple>ベイガー"
+# BetterModel のモデル名
+model: veigar
+# 見た目の大きさ（倍率）。モデルは元が約1ブロックなので、5.6 で約5.4ブロック（プレイヤーの3倍）
+model-scale: 5.6
+# 殴れる当たり判定の大きさ（ハスクの倍率）。2.75 で高さ約5.4ブロック・幅約1.7ブロック
+entity-scale: 2.75
+# HP・制限時間はガンナーと同じ。ダメージは元ネタ通り大きめ
+max-health: 5200
+# ボスが与えるダメージ全体の倍率（技の damage にまとめて掛かる）
+# ネザライト全身・ダメージ軽減IV・耐性I を想定。6 で隕石1発が約4ハート、衝撃波・薙ぎ払いが約3.5ハート、杖が約3ハート
+# 一撃は重いが、そのぶん技の後の隙が大きい（skill-gap-ticks・各技の end-ticks）
+damage-multiplier: 6
+# 旅商人からのボス戦で、参加者が1人増えるごとに増やす HP の割合（0.2 なら 1人 1倍・2人 1.2倍・3人 1.4倍）
+health-per-player: 0.2
+# 召喚から消えるまでの時間（0 以下で無制限）。12000 = 10分
+lifetime-ticks: 12000
+# 技が終わってから次の技を出すまで、杖をついて息を整える時間（殴りどき）。20 = 1秒
+skill-gap-ticks: 20
+
+# ===== 標的 =====
+target:
+  # 標的を探す距離（ブロック）
+  search-range: 16
+  # ボスよりこれ以上高い所にいる相手は狙わない（ブロック）
+  max-height: 5
+
+# ===== ボスバー =====
+bossbar:
+  color: PURPLE
+  overlay: NOTCHED_10
+  range: 48
+
+# ===== 死亡 =====
+death:
+  animation: death
+  # 死亡アニメ（2秒）を流してから消えるまで
+  ticks: 45
+
+# ===== 盾 =====
+# 盾で防いだダメージ（damage-multiplier を掛けた後の値）が break-damage たまると盾が壊れ、disable-ticks の間使えなくなる
+# 2秒防がずにいると、ためた量が少しずつ減る（4秒で上限ぶん）。break-damage を 0 にすると壊れない
+# skill-multipliers: 技ごとに、防いだときにたまる量の倍率（技ID: 倍率。書いていない技は 1）
+shield:
+  # 杖や衝撃波を4回ほど防ぐと壊れる
+  # ジャストガードがあるので、ふつうのガードで受け続けたときは少し早めに壊れる（前は 150）
+  break-damage: 120
+  disable-ticks: 100
+  # 遠距離の技（魔法の弾・隕石・ビーム）は盾で受けても、ほとんど壊れない
+  skill-multipliers:
+    magic_bolt: 0.25
+    magic_bolt_rage: 0.25
+    meteor_shower: 0.25
+    meteor_shower_rage: 0.25
+    rotating_beam: 0.2
+    rotating_beam_rage: 0.2
+    magic_cage: 0.5
+
+# ===== 耐性 =====
+immunity:
+  # true なら矢などの飛び道具をすり抜ける。false なら当たる（ダメージは config.yml の boss.projectile-damage-multiplier 倍。初期値は半分）
+  projectile: false
+  potion: true
+  vertical-knockback: true
+
+# ===== ベイガー固有 =====
+extra:
+  # この HP の割合以下で本気になる
+  rage-health-ratio: 0.5
+  # 本気モードの目の色（"#RRGGBB"）
+  rage-eye-color: "#FF3030"
+
+# ===== 技 =====
+skills:
+  # 杖の振り下ろし: プレイヤーの所までダッシュしてから振り下ろす
+  staff_slam:
+    weight: 3
+    animation: attack
+    # この距離以内に標的がいれば使う（遠ければダッシュで近づく）
+    range: 14
+    # ダッシュ: 1tick に進む距離・この距離まで近づいたら振る・最大の時間・ダッシュ中のアニメ
+    # 以下の tick（hit-windows / end-ticks）は、振り始めてからの tick
+    approach-speed: 0.9
+    approach-distance: 4.5
+    approach-max-ticks: 25
+    approach-animation: walk
+    bones: [staff]
+    shape: BLADE
+    min-blade-radius: 0.8
+    # 0.35秒で振りかぶり、0.5秒（10tick）で叩きつける
+    hit-windows: ["8-14"]
+    # 叩きつけた後の隙を長めに（約0.8秒）
+    end-ticks: 34
+    damage: 7
+
+  # 薙ぎ払い: 杖を槍のように構え、体ごとひねって横一文字に振り抜く（杖のボーンで当たり判定）
+  # プレイヤーの所までダッシュしてから振る
+  sweep:
+    weight: 2
+    animation: sweep
+    range: 14
+    approach-speed: 0.9
+    approach-distance: 5
+    approach-max-ticks: 25
+    approach-animation: walk
+    bones: [staff]
+    shape: BLADE
+    min-blade-radius: 0.8
+    # 0.4〜0.62秒で振り抜く
+    hit-windows: ["8-13"]
+    # 振り抜いた後の隙を長めに（約0.8秒）
+    end-ticks: 40
+    damage: 8
+
+  # 魔法の弾: 杖を突き出して、扇状に紫の弾を撃つ。まっすぐ飛ぶので、横に動けばかわせる
+  magic_bolt:
+    weight: 2
+    animation: shoot
+    # 遠くの相手にも使う
+    range: 24
+    # 撃つ tick（アニメの 0.4秒）。複数書くと連射（例: [8, 14]）
+    shoot-ticks: [8]
+    # 1回に撃つ数と、扇の広がり（度）。弾と弾の間を抜けられる広さにしている
+    count: 3
+    spread-degrees: 50
+    # 1tick に進む距離と、追いかける強さ（0 でまっすぐ）。遅めなので、見てから横に動けば間に合う
+    speed: 0.65
+    homing: 0
+    # 何 tick で消えるか
+    max-life-ticks: 60
+    hit-radius: 0.7
+    # 当たったときの爆発の半径（小さめ。かすっただけでは当たらない）
+    explosion-radius: 1.2
+    damage: 6
+    # 撃ち出す位置: 足元からの高さ（当たり判定の高さに対する割合）と、前方への距離（杖の先あたり）
+    launch-height: 0.33
+    launch-forward: 3.5
+    end-ticks: 32
+    # 弾き返し: 弾がここまで来たとき（reflect-radius ブロック）にジャストガードすると、ベイガーへ跳ね返る（当たると reflect-damage）
+    reflectable: true
+    reflect-radius: 2.5
+    reflect-speed: 1.2
+    reflect-damage: 25
+
+  # 回転ビーム: 溜めてから杖の先から地面へビームを撃ち、その場で回る
+  # 地面を這う部分はジャンプで飛び越えられる。届かない所（length より外）へ逃げてもよい
+  rotating_beam:
+    weight: 1
+    animation: beam
+    range: 18
+    # 撃ち始め・撃ち終わり（アニメの 1.0秒・4.8秒）と、技全体の長さ（5.4秒）
+    fire-start-ticks: 20
+    fire-end-ticks: 96
+    # 撃ち終わった後の隙を長めに（約1.6秒）
+    end-ticks: 128
+    # 撃っている間に回る角度（360 で1周）。左右どちらかはランダム
+    # 270度を3.8秒 = 1秒に約70度。ビームが来るのを見てから跳べる速さ
+    rotation-degrees: 270
+    # ビームの長さ（壁に当たるとそこで止まる）。これより外にいれば当たらない
+    length: 16
+    # ビームの出る位置（杖の先）: 前へ・上へ（ブロック）
+    origin-forward: 3.5
+    origin-height: 1.8
+    # 杖の先から地面すれすれまで下りきる距離（ボスの中心から）。ここより外はジャンプでかわせる
+    drop-distance: 6
+    # 地面を這う部分の高さ
+    beam-height: 0.4
+    # 当たり判定の幅（中心線からの水平距離）と厚さ（上下）
+    # 地面を這う部分は 足元から 0.75 までに体があると当たる → ジャンプで足が 0.75 より上ならかわせる
+    hit-width: 0.6
+    hit-height: 0.35
+    # 同じ相手に当たる間隔と、1回のダメージ
+    hit-interval-ticks: 10
+    damage: 5
+
+  # 地面叩き: 杖を地面に突き立て、足元から衝撃波の輪を広げる。ジャンプでかわせる
+  ground_slam:
+    weight: 2
+    range: 10
+    animation: ground_slam
+    # 杖が地面に着く tick（アニメの 0.85秒）
+    impact-ticks: 17
+    # 衝撃波の回数と間隔（2回目はタイミングをずらしてジャンプを誘う）
+    waves: 2
+    wave-interval-ticks: 14
+    # 1tick に広がる距離（ブロック）。0.7 なら12ブロック先まで約0.5秒
+    wave-speed: 0.9
+    # ボスの中心から衝撃波が出始める距離と、届く距離（走って範囲外へ逃げられないよう広め）
+    start-radius: 2
+    max-radius: 22
+    # 輪の太さ（ブロック）。太いほどジャンプのタイミングがシビアになる
+    wave-width: 2.5
+    damage: 8
+    # 足が地面からこの高さより上ならかわせる（ジャンプの頂点は約1.25ブロック）
+    jump-clearance: 0.5
+    # 当たった相手を打ち上げる強さ
+    launch: 0.9
+    end-ticks: 66
+
+  # 隕石の雨: 宙に浮いて大笑いしながら10秒詠唱し、周囲に隕石を降らせる → 疲れ果てて隙だらけ
+  meteor_shower:
+    weight: 1
+    # この距離以内に標的がいるときだけ使う
+    range: 16
+    animation: laugh_cast
+    # 隕石を降らせる区間（アニメでは 0.6秒で浮き上がり、10.6秒で落ち始める）
+    cast-start-ticks: 12
+    cast-end-ticks: 212
+    # laugh_cast の長さ（11.2秒）
+    end-ticks: 224
+    # 何 tick ごとに何個降らせるか（8tick ごとに2個 = 10秒で約50個）
+    interval-ticks: 8
+    meteors-per-wave: 2
+    # 詠唱を始めた位置からこの半径の中に降らせる
+    area-radius: 16
+    # 標的の足元を狙う割合（0〜1）。残りは範囲内のランダムな地点
+    aim-ratio: 0.35
+    # 同じ人の足元を狙う間隔（tick）。狙われ続けて逃げ場がなくならないように
+    aim-cooldown-ticks: 16
+    # 予測マーカーが出てから着弾するまで（短いほど避けにくい）。24 = 1.2秒
+    warning-ticks: 24
+    # 落ちてくる高さ（ブロック）
+    fall-height: 18
+    # 着弾の範囲（半径）。予告を見て2〜3歩動けば外へ出られる広さ
+    impact-radius: 2.8
+    impact-damage: 9
+    # 当たった相手が燃える時間
+    fire-ticks: 60
+    # 着弾点から外向きに飛ばす強さ
+    knockback: 0.7
+    # 隕石の見た目のブロック
+    meteor-block: MAGMA_BLOCK
+    # 浮いている間に受けるダメージの倍率
+    cast-damage-multiplier: 0.5
+    # 疲れ（着地後）: 疲れ始め → 疲れの繰り返し → 立ち直り
+    exhausted-start-animation: exhausted_start
+    exhausted-start-ticks: 16
+    exhausted-animation: exhausted
+    # 殴りどきの長さ。100 = 5秒
+    exhausted-ticks: 100
+    exhausted-end-animation: exhausted_end
+    exhausted-end-ticks: 14
+    # 疲れている間に受けるダメージの倍率
+    exhausted-damage-multiplier: 1.5
+
+# ===== 本気モード（HP が extra.rage-health-ratio 以下） =====
+# 移行の演出の後、下の「_rage」の技と魔法陣の檻を使う（ほかの値は通常の技と同じ）
+
+  # 本気モードへの移行（今の技が終わってから1回）。身をかがめて力を溜め、change-tick で杖を掲げて叫ぶ
+  # このとき目が赤くなり（extra.rage-eye-color）、impact-radius 以内の相手を吹き飛ばす（ダメージなし）
+  rage_shift:
+    weight: 0
+    animation: rage
+    end-ticks: 52
+    change-tick: 30
+    impact-radius: 7
+    knockback: 1.4
+    taken-damage-multiplier: 0.3
+
+  # 本気の振り下ろし: 踏み込みが速い
+  staff_slam_rage:
+    weight: 3
+    animation: attack
+    range: 14
+    approach-speed: 1.2
+    approach-distance: 4.5
+    approach-max-ticks: 20
+    approach-animation: walk
+    bones: [staff]
+    shape: BLADE
+    min-blade-radius: 0.8
+    hit-windows: ["8-14"]
+    end-ticks: 34
+    damage: 7
+
+  # 本気の薙ぎ払い: 踏み込みが速い
+  sweep_rage:
+    weight: 2
+    animation: sweep
+    range: 14
+    approach-speed: 1.2
+    approach-distance: 5
+    approach-max-ticks: 20
+    approach-animation: walk
+    bones: [staff]
+    shape: BLADE
+    min-blade-radius: 0.8
+    hit-windows: ["8-13"]
+    end-ticks: 40
+    damage: 8
+
+  # 本気の地面叩き: 衝撃波が3回・間隔が短い
+  ground_slam_rage:
+    weight: 2
+    range: 10
+    animation: ground_slam
+    impact-ticks: 17
+    waves: 3
+    wave-interval-ticks: 11
+    wave-speed: 0.9
+    start-radius: 2
+    max-radius: 22
+    wave-width: 2.5
+    damage: 8
+    jump-clearance: 0.5
+    launch: 0.9
+    end-ticks: 74
+
+  # 本気の魔法の弾: 5発・2回撃つ（0.4秒と0.7秒）
+  magic_bolt_rage:
+    weight: 2
+    animation: shoot
+    range: 24
+    shoot-ticks: [8, 14]
+    count: 5
+    spread-degrees: 70
+    speed: 0.75
+    homing: 0
+    max-life-ticks: 60
+    hit-radius: 0.7
+    explosion-radius: 1.2
+    damage: 6
+    launch-height: 0.33
+    launch-forward: 3.5
+    end-ticks: 38
+    # 弾き返し: 弾がここまで来たとき（reflect-radius ブロック）にジャストガードすると、ベイガーへ跳ね返る（当たると reflect-damage）
+    reflectable: true
+    reflect-radius: 2.5
+    reflect-speed: 1.2
+    reflect-damage: 25
+
+  # 本気の回転ビーム: 一周する
+  rotating_beam_rage:
+    weight: 1
+    animation: beam
+    range: 18
+    fire-start-ticks: 20
+    fire-end-ticks: 96
+    end-ticks: 128
+    rotation-degrees: 360
+    length: 16
+    origin-forward: 3.5
+    origin-height: 1.8
+    drop-distance: 6
+    beam-height: 0.4
+    hit-width: 0.6
+    hit-height: 0.35
+    hit-interval-ticks: 10
+    damage: 5
+
+  # 本気の隕石の雨: 数が多く、狙いが正確
+  meteor_shower_rage:
+    weight: 1
+    range: 16
+    animation: laugh_cast
+    cast-start-ticks: 12
+    cast-end-ticks: 212
+    end-ticks: 224
+    interval-ticks: 7
+    meteors-per-wave: 3
+    area-radius: 16
+    aim-ratio: 0.35
+    aim-cooldown-ticks: 14
+    warning-ticks: 22
+    fall-height: 18
+    impact-radius: 3.0
+    impact-damage: 9
+    fire-ticks: 60
+    knockback: 0.7
+    meteor-block: MAGMA_BLOCK
+    cast-damage-multiplier: 0.5
+    exhausted-start-animation: exhausted_start
+    exhausted-start-ticks: 16
+    exhausted-animation: exhausted
+    exhausted-ticks: 100
+    exhausted-end-animation: exhausted_end
+    exhausted-end-ticks: 14
+    exhausted-damage-multiplier: 1.5
+
+  # 魔法陣の檻（本気のときだけ）: 標的の足元に紫の輪が浮かび、activate-tick で檻になる（予告の間に輪の外へ出れば閉じ込められない）
+  # 檻の縁を越える（出る・入る）と damage とスタン。檻の中の相手の足元には interval-ticks ごとに魔弾が降る（予告の輪から出てかわす）
+  # 檻の外の相手には何もしないので、仲間が外からベイガーを叩ける
+  magic_cage:
+    weight: 2
+    range: 18
+    animation: cage_cast
+    wait-animation: cage_hold
+    # 予告（1.2秒。杖を地面に突き立てたところで閉じる）と、檻が続く時間（5秒）
+    activate-tick: 24
+    duration-ticks: 100
+    # 檻の半径と、縁の当たり判定の幅
+    area-radius: 5.5
+    hit-width: 0.7
+    damage: 6
+    stun-ticks: 30
+    # 魔弾: 降る間隔・予告の時間・半径・ダメージ
+    interval-ticks: 20
+    warning-ticks: 16
+    impact-radius: 2
+    impact-damage: 7
+    end-ticks: 150

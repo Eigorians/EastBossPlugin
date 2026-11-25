@@ -1,0 +1,423 @@
+# 大巨人 の設定
+# 時間はすべて tick（1秒 = 20tick）。動きの tick は「その動きの始まりから」の経過時間
+# 変更は /eb reload の後に召喚したボスから反映される
+#
+# 見上げるほど大きな巨人。どの攻撃も溜めが長く、範囲がとても広い。技をつなげてくるが、連携の後の隙は大きい。
+# 攻撃の前に地面へ範囲の予告が出る。予告の中を色が満たし切った瞬間に当たる。
+# 技（skills）は「動き」（moves）を並べた連携。動きは下の moves で1回だけ定義して、いろいろな技で使い回す
+
+# ===== 基本 =====
+name: "<gradient:#a8b07a:#5c4a32><bold>大巨人</bold></gradient>"
+model: giant
+# 見た目の大きさ。モデルは元が約2ブロックなので、4.2 で約8.5ブロック
+model-scale: 4.2
+# 殴れる当たり判定の大きさ（ハスクの倍率）。4.3 で高さ約8.4ブロック・幅約2.6ブロック
+entity-scale: 4.3
+max-health: 7000
+# ネザライト全身・ダメージ軽減IV・耐性I を想定。溜めが長く予告もはっきりしていて、ジャストガードもできるので、当たると致命的
+# 8 で: 叩きつけ・大跳躍は一撃死（約12〜13ハート）、薙ぎ払い 約8ハート、速い踏みつけ 約6.5ハート
+# （防具の軽減は大きいダメージほど効きにくいので、倍率を少し上げるだけで実際のダメージは大きく増える）
+damage-multiplier: 8
+# 旅商人からのボス戦で、参加者が1人増えるごとに増やす HP の割合（0.2 なら 1人 1倍・2人 1.2倍・3人 1.4倍）
+health-per-player: 0.2
+# 連携と連携の間の隙（この間は歩いて近づいてくる）
+skill-gap-ticks: 20
+# 召喚から消えるまでの時間（0 以下で無制限）。12000 = 10分
+lifetime-ticks: 12000
+
+# ===== 標的 =====
+target:
+  search-range: 40
+  # 大巨人は使わない（狙う高さは extra.air-target-height）
+  max-height: 10
+
+# ===== ボスバー =====
+bossbar:
+  color: GREEN
+  overlay: NOTCHED_10
+  range: 64
+
+# ===== 死亡 =====
+death:
+  animation: death
+  # 膝をつき、ゆっくり前へ倒れ込む（3秒で地響き。4秒）
+  ticks: 84
+
+# ===== 盾 =====
+# 一撃が重いので、壊れるまでの量を多めに
+shield:
+  # 一撃で盾が壊れる（巨人の一撃はふつうのガードでは受けきれない。ジャストガードなら壊れない）
+  break-damage: 1
+  disable-ticks: 100
+  skill-multipliers:
+    boulder: 0.6
+    boulder_rage: 0.6
+
+# ===== 耐性 =====
+immunity:
+  projectile: false
+  potion: true
+  vertical-knockback: true
+
+# ===== 大巨人固有 =====
+extra:
+  # この HP の割合以下で本気になる（目と胸の紋様が赤く燃え、連携が長くなり、大地割りが加わる）
+  rage-health-ratio: 0.5
+  # 歩く速さ（1tick に進むブロック）と、向きを変える速さ（度/tick）
+  walk-speed: 0.12
+  walk-turn-speed: 4
+  # 標的にこの距離まで近づいたら止まる
+  stop-distance: 7
+  # 召喚地点からこのブロック数より離れては歩かない
+  home-radius: 22
+  # 目と胸の紋様の色（本気のときは rage-）
+  eye-color: "#FFC060"
+  rage-eye-color: "#FF3010"
+  rune-color: "#6A4A30"
+  rage-rune-color: "#FF6A1A"
+  # 本気（怒った大巨人）: 体が rage-size 倍まで大きくなり（rage-grow-ticks かけて。範囲も同じだけ広がる）、
+  # 動きの時間が rage-tempo 倍になる（0.8 ＝ワンテンポ速い。アニメも速く流れ、振り向きも速い）。本気の連携は長さがランダム（chain-pool）
+  rage-size: 1.3
+  rage-tempo: 0.8
+  rage-grow-ticks: 30
+  # ブロックを積んで登った相手への対策:
+  # どの動きも上へ hit-height まで届く。それより高い相手には岩を直接投げる（air-target-height の高さまで狙う）
+  # air-height 以上の高さにいる相手が「高い所」（予告をその高さにも出す・岩投げが優先して狙う）
+  air-height: 5
+  air-target-height: 80
+
+# ===== 動き（連携の部品） =====
+# animation       … 流すアニメ（下の tick はアニメに合わせてある）
+# end-ticks       … 動きの長さ（次の動き・隙へ移る）
+# shape           … 範囲の形: CIRCLE（円）/ CONE（扇）/ LINE（帯）/ THROW（岩投げ）/ LEAP（大跳躍）
+# impact-tick     … 当たる tick（予告が満ち切る瞬間）
+# warn-start-tick … 予告を出し始める tick
+# aim-lock-tick   … 狙いを固める tick（それまでは turn-speed 度/tick でゆっくり標的の方を向く）
+# radius / forward … 円の半径と、中心を正面へずらす距離（0 なら自分のまわり）。扇の半径
+# cone-degrees    … 扇の開き（度）
+# length / width / wave-speed … 帯の長さ・幅と、割れていく速さ（ブロック/tick。0 なら一度に）
+# damage / knockback / launch … ダメージ、外向きに飛ばす強さ、浮かせる強さ
+# hit-height      … 足元から上へ届く高さ（岩投げは着弾点から。本気では rage-size 倍）
+# shake-radius    … 当たった瞬間に地面が揺れる範囲（0 で揺らさない）
+moves:
+  # 叩きつけ: 棍棒を高く振りかぶり、正面の地面へ叩きつける（正面 8 ブロック先の円）
+  slam:
+    animation: slam
+    end-ticks: 38
+    shape: CIRCLE
+    impact-tick: 28
+    warn-start-tick: 4
+    aim-lock-tick: 20
+    turn-speed: 2.5
+    forward: 9
+    radius: 6.5
+    hit-height: 16
+    damage: 12
+    knockback: 0.9
+    launch: 0.6
+    shake-radius: 16
+
+  # 薙ぎ払い: 右後ろへ構えて、左へ大きく薙ぐ（自分のまわりの扇。棍棒の届く半径 10）
+  sweep:
+    animation: sweep
+    end-ticks: 30
+    shape: CONE
+    impact-tick: 20
+    warn-start-tick: 2
+    aim-lock-tick: 14
+    turn-speed: 3
+    radius: 13
+    hit-height: 14
+    cone-degrees: 240
+    damage: 9
+    knockback: 1.4
+    launch: 0.4
+
+  # 返しの薙ぎ払い: 左へ構えて、右へ薙ぐ
+  sweep_back:
+    animation: sweep_back
+    end-ticks: 26
+    shape: CONE
+    impact-tick: 17
+    warn-start-tick: 2
+    aim-lock-tick: 11
+    turn-speed: 3
+    radius: 13
+    hit-height: 14
+    cone-degrees: 240
+    damage: 9
+    knockback: 1.4
+    launch: 0.4
+
+  # 踏みつけ: 右足を高く上げて踏み下ろす（自分のまわりの円）
+  stomp:
+    animation: stomp
+    end-ticks: 32
+    shape: CIRCLE
+    impact-tick: 24
+    warn-start-tick: 4
+    aim-lock-tick: 18
+    forward: 1.5
+    radius: 9.5
+    hit-height: 14
+    damage: 10
+    knockback: 1.0
+    launch: 0.9
+    shake-radius: 18
+
+  # 速い踏みつけ（本気の連続踏みつけ用）
+  stomp_quick:
+    animation: stomp_quick
+    end-ticks: 16
+    shape: CIRCLE
+    impact-tick: 11
+    warn-start-tick: 0
+    aim-lock-tick: 6
+    forward: 1.5
+    radius: 8
+    hit-height: 14
+    damage: 8
+    knockback: 0.9
+    launch: 0.8
+    shake-radius: 14
+
+  # 岩投げ: 地面の岩をつかんで（grab-tick）、標的の足元（動きを見越す）へ投げる（release-ticks）
+  # 着く所に円の予告。投げるまでは標的についてくるので、投げた瞬間に横へ走る
+  throw:
+    animation: throw
+    end-ticks: 52
+    shape: THROW
+    grab-tick: 9
+    release-ticks: 32
+    flight-ticks: 18
+    arc-height: 8
+    lead-ratio: 0.6
+    warn-start-tick: 10
+    turn-speed: 3
+    radius: 5.5
+    hit-height: 8
+    damage: 10
+    knockback: 0.8
+    launch: 0.7
+    shake-radius: 10
+    block: MOSSY_COBBLESTONE
+
+  # 大跳躍: 沈み込んで（takeoff-tick）高く跳び、標的のいた所（max-distance まで）へ着地して叩きつける
+  # 跳んだ瞬間に着地点が固まり、円の予告が出る
+  leap:
+    animation: leap
+    end-ticks: 52
+    shape: LEAP
+    takeoff-tick: 20
+    impact-tick: 40
+    warn-start-tick: 20
+    turn-speed: 4
+    jump-height: 9
+    max-distance: 18
+    radius: 9.5
+    hit-height: 18
+    damage: 14
+    knockback: 1.2
+    launch: 1.0
+    shake-radius: 22
+
+  # 大地割り（本気だけ）: 両手で叩きつけ、正面へ帯状に地面が割れていく（手前から奥へ）
+  crack:
+    animation: crack
+    end-ticks: 48
+    shape: LINE
+    impact-tick: 30
+    warn-start-tick: 4
+    aim-lock-tick: 24
+    turn-speed: 2.5
+    length: 28
+    width: 6
+    hit-height: 16
+    wave-speed: 1.2
+    damage: 11
+    knockback: 0.4
+    launch: 1.1
+    shake-radius: 14
+
+# ===== 技（連携） =====
+# moves           … 出す動きの順番（上の moves の ID）
+# range / min-range … この距離の中に標的がいるときだけ使う
+# chain-gap-ticks … 動きと動きの間（短いほど息つく暇がない）
+# recover-*       … 連携の後の隙（片膝をついて肩で息をする。受けるダメージが recover-damage-multiplier 倍）
+skills:
+  # 登場（召喚直後に1回）: うずくまった岩の姿から立ち上がり、胸を叩いて吠える
+  spawn_intro:
+    weight: 0
+    animation: spawn
+    end-ticks: 60
+    taken-damage-multiplier: 0.5
+
+  # 本気モードへの移行: 身をかがめて力を溜め、change-tick で吠える（周りを吹き飛ばす。ダメージなし）
+  rage_shift:
+    weight: 0
+    animation: roar
+    end-ticks: 60
+    change-tick: 28
+    impact-radius: 10
+    knockback: 1.6
+    taken-damage-multiplier: 0.3
+
+  # ---- 通常 ----
+  # 叩きつけ → 薙ぎ払い
+  smash_combo:
+    weight: 3
+    range: 13
+    moves: [slam, sweep]
+    chain-gap-ticks: 2
+    recover-animation: tired
+    recover-ticks: 50
+    recover-end-animation: tired_end
+    recover-end-ticks: 16
+    recover-damage-multiplier: 1.3
+
+  # 薙ぎ払い → 返しの薙ぎ払い
+  sweep_combo:
+    weight: 3
+    range: 10
+    moves: [sweep, sweep_back]
+    chain-gap-ticks: 2
+    recover-animation: tired
+    recover-ticks: 44
+    recover-end-animation: tired_end
+    recover-end-ticks: 16
+    recover-damage-multiplier: 1.3
+
+  # 踏みつけ → 薙ぎ払い（足元に潜り込んだ相手を払う）
+  stomp_combo:
+    weight: 2
+    range: 8
+    moves: [stomp, sweep]
+    chain-gap-ticks: 2
+    recover-animation: tired
+    recover-ticks: 44
+    recover-end-animation: tired_end
+    recover-end-ticks: 16
+    recover-damage-multiplier: 1.3
+
+  # 岩投げ（離れた相手と、高い所の相手に。高い所の相手には min-range を見ない）
+  boulder:
+    weight: 2
+    range: 30
+    min-range: 10
+    moves: [throw]
+    recover-animation: tired
+    recover-ticks: 30
+    recover-end-animation: tired_end
+    recover-end-ticks: 16
+    recover-damage-multiplier: 1.2
+
+  # 大跳躍（離れた相手に）。着地の後は長い隙
+  leap_slam:
+    weight: 2
+    range: 24
+    min-range: 9
+    moves: [leap]
+    recover-animation: tired
+    recover-ticks: 60
+    recover-end-animation: tired_end
+    recover-end-ticks: 16
+    recover-damage-multiplier: 1.4
+
+  # ---- 本気（連携が長くなる） ----
+  # 叩きつけ → 薙ぎ払い → 返しの薙ぎ払い
+  smash_combo_rage:
+    weight: 3
+    range: 13
+    # 頭の動き（必ずこの順で始まる）。その後、chain-pool からランダムに足して chain-min 〜 chain-max 個つなぐ
+    moves: [slam, sweep]
+    chain-pool: [slam, sweep, sweep_back, stomp_quick]
+    chain-min: 2
+    chain-max: 5
+    chain-gap-ticks: 1
+    recover-animation: tired
+    recover-ticks: 44
+    recover-end-animation: tired_end
+    recover-end-ticks: 16
+    recover-damage-multiplier: 1.3
+
+  # 薙ぎ払い → 返し → 薙ぎ払い
+  sweep_combo_rage:
+    weight: 2
+    range: 10
+    # 頭の動き（必ずこの順で始まる）。その後、chain-pool からランダムに足して chain-min 〜 chain-max 個つなぐ
+    moves: [sweep, sweep_back]
+    chain-pool: [sweep, sweep_back, slam, stomp_quick]
+    chain-min: 2
+    chain-max: 5
+    chain-gap-ticks: 1
+    recover-animation: tired
+    recover-ticks: 44
+    recover-end-animation: tired_end
+    recover-end-ticks: 16
+    recover-damage-multiplier: 1.3
+
+  # 踏みつけ → 速い踏みつけ ×2 → 叩きつけ
+  stomp_combo_rage:
+    weight: 2
+    range: 9
+    # 頭の動き（必ずこの順で始まる）。その後、chain-pool からランダムに足して chain-min 〜 chain-max 個つなぐ
+    moves: [stomp, stomp_quick]
+    chain-pool: [stomp_quick, slam, stomp, sweep]
+    chain-min: 2
+    chain-max: 5
+    chain-gap-ticks: 1
+    recover-animation: tired
+    recover-ticks: 50
+    recover-end-animation: tired_end
+    recover-end-ticks: 16
+    recover-damage-multiplier: 1.3
+
+  # 岩投げ ×2
+  boulder_rage:
+    weight: 2
+    range: 30
+    min-range: 10
+    # 頭の動き（必ずこの順で始まる）。その後、chain-pool からランダムに足して chain-min 〜 chain-max 個つなぐ
+    moves: [throw]
+    chain-pool: [throw]
+    chain-min: 1
+    chain-max: 3
+    chain-gap-ticks: 2
+    recover-animation: tired
+    recover-ticks: 30
+    recover-end-animation: tired_end
+    recover-end-ticks: 16
+    recover-damage-multiplier: 1.2
+
+  # 大跳躍 → 速い踏みつけ
+  leap_slam_rage:
+    weight: 2
+    range: 24
+    min-range: 9
+    # 頭の動き（必ずこの順で始まる）。その後、chain-pool からランダムに足して chain-min 〜 chain-max 個つなぐ
+    moves: [leap]
+    chain-pool: [stomp_quick, slam, sweep]
+    chain-min: 1
+    chain-max: 3
+    chain-gap-ticks: 1
+    recover-animation: tired
+    recover-ticks: 56
+    recover-end-animation: tired_end
+    recover-end-ticks: 16
+    recover-damage-multiplier: 1.4
+
+  # 薙ぎ払い → 大地割り（本気だけ）。大地割りの後は特に長い隙
+  crack_combo:
+    weight: 2
+    range: 16
+    # 頭の動き（必ずこの順で始まる）。その後、chain-pool からランダムに足して chain-min 〜 chain-max 個つなぐ
+    moves: [sweep, crack]
+    chain-pool: [crack, slam, sweep_back]
+    chain-min: 2
+    chain-max: 4
+    chain-gap-ticks: 2
+    recover-animation: tired
+    recover-ticks: 64
+    recover-end-animation: tired_end
+    recover-end-ticks: 16
+    recover-damage-multiplier: 1.4

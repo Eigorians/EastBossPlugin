@@ -1,0 +1,289 @@
+# チュートリアルアルファ の設定
+# 時間はすべて tick（1秒 = 20tick）。技の tick は「技の開始から」の経過時間
+# 変更は /eb reload の後に召喚したボスから反映される
+#
+# 最初に戦うボス。強さは控えめにして、ボスとの戦い方（予告を見てよける・隙に攻める）を教える。
+# 技を初めて使うとき、その技の hint を参加者のチャットに出す。突進は溜めている間、進む向きに赤い線が出る
+
+# ===== 基本 =====
+# 表示名（MiniMessage 形式）
+name: "<red>チュートリアルアルファ"
+# BetterModel のモデル名
+model: tutorial_alpha
+# チュートリアルなので短め（ほかのボスの 1/8〜1/10 くらい）
+max-health: 500
+# ボスが与えるダメージ全体の倍率（技の damage にまとめて掛かる）
+# ネザライト全身・ダメージ軽減IV・耐性I を想定（チュートリアルなので少し控えめ）
+damage-multiplier: 3
+# 旅商人からのボス戦で、参加者が1人増えるごとに増やす HP の割合（0.2 なら 1人 1倍・2人 1.2倍・3人 1.4倍）
+health-per-player: 0.2
+# 技と技の間の隙（この間に攻める練習）。0 にするとジャブ → 溜め斬りの連携が出なくなる
+skill-gap-ticks: 16
+# 召喚から消えるまでの時間（0 以下で無制限）。6000 = 5分
+lifetime-ticks: 6000
+
+# ===== 標的 =====
+target:
+  # 標的を探す距離（ブロック）
+  search-range: 12
+  # ボスよりこれ以上高い所にいる相手は狙わない（ブロック）
+  max-height: 5
+
+# ===== ボスバー =====
+bossbar:
+  # PINK / BLUE / RED / GREEN / YELLOW / PURPLE / WHITE
+  color: RED
+  # PROGRESS / NOTCHED_6 / NOTCHED_10 / NOTCHED_12 / NOTCHED_20
+  overlay: NOTCHED_10
+  # 見える距離（ブロック）
+  range: 48
+
+# ===== 死亡 =====
+death:
+  animation: death
+  # 死亡アニメを流してから消えるまで
+  ticks: 80
+
+# ===== 盾 =====
+# 盾で防いだダメージ（damage-multiplier を掛けた後の値）が break-damage たまると盾が壊れ、disable-ticks の間使えなくなる
+# 2秒防がずにいると、ためた量が少しずつ減る（4秒で上限ぶん）。break-damage を 0 にすると壊れない
+# skill-multipliers: 技ごとに、防いだときにたまる量の倍率（技ID: 倍率。書いていない技は 1）
+shield:
+  # ジャストガードがあるので、ふつうのガードで受け続けたときは少し早めに壊れる（前は 60）
+  break-damage: 48
+  disable-ticks: 60
+
+# ===== 耐性 =====
+immunity:
+  # true なら矢などの飛び道具をすり抜ける。false なら当たる（ダメージは config.yml の boss.projectile-damage-multiplier 倍。初期値は半分）
+  projectile: false
+  # スプラッシュポーションの効果を受けない
+  potion: true
+  # 縦方向のノックバックを受けない（横は受ける）
+  vertical-knockback: true
+
+# ===== アルファ固有 =====
+extra:
+  # この HP の割合以下で「少しだけ本気」になる（ジャブの後に、ときどき溜め斬りを続ける）
+  rage-health-ratio: 0.5
+  # 少しだけ本気になってから、ジャブの後に溜め斬りを続ける確率（0〜1）
+  chain-chance: 0.5
+  # 技を初めて使うとき、避け方をチャットで教える（技の hint）
+  hints: true
+  # true なら同じ技の説明を毎回出す（false なら技ごとに最初の1回だけ）
+  hint-repeat: false
+  hint-prefix: "<light_purple>[アルファの教え] </light_purple>"
+
+  # ジャストガードの練習（登場の後）。誰かがジャストガードに成功するまで、素振り（skills.lesson_swing）だけを繰り返し、
+  # どんな攻撃も効かない。殴ってきた人・素振りを受け損ねた人を叱る。false にすると練習なしで始まる
+  lesson:
+    enabled: true
+    # 殴ってきた人を叱る間隔（同じ人に。tick）。素振りを受け損ねたときは毎回叱る
+    scold-cooldown-ticks: 60
+    prefix: "<light_purple>[アルファ] </light_purple>"
+    # 素振りの合図: 振り始め（近づき終わり）から countdown-ticks の tick に、countdown をアクションバーに出す（最後が「今」）
+    countdown-ticks: [2, 8, 14]
+    countdown:
+      - "<yellow>よーく見て…"
+      - "<gold>まだですよ…"
+      - "<aqua><bold>今！ 盾を構えて！"
+    # 練習中に殴ってきたとき（どれか1つ）
+    scold-attack:
+      - "<red>こらっ！</red> <gray>まだ攻撃は効きません。先に<aqua>ジャストガード</aqua>を成功させてください！"
+      - "<red>ダメです！</red> <gray>攻めるより、まず守りから。鈴が鳴ったら盾ですよ"
+      - "<red>もう、話を聞いてください！</red> <gray>ジャストガードができるまで、私は倒れません"
+      - "<red>焦らないの！</red> <gray>私の剣をよーく見て、盾で受けてみて"
+    # 素振りが当たった: 盾を持っていない
+    scold-no-shield:
+      - "<red>盾はどこですか！？</red> <gray>オフハンドに<white>盾</white>を持ってくださいね"
+      - "<red>盾が無いと練習になりません！</red> <gray>オフハンドに盾を持って、もう一度"
+    # 素振りが当たった: 構えるのが早すぎる（構えっぱなし）
+    scold-early:
+      - "<red>早すぎます！</red> <gray>構えっぱなしではダメ。<yellow>鈴が鳴った瞬間</yellow>に構えるんです"
+      - "<red>ずっと構えていてはジャストになりません！</red> <gray>一度下ろして、当たる直前に構えて"
+    # 素振りが当たった: 構えていない（遅い）
+    scold-late:
+      - "<red>遅いです！</red> <gray>鈴が鳴ったら、すぐに右クリックで盾を構えて"
+      - "<red>今のが受けどきでした！</red> <gray>音をよく聞いて、もう一度"
+      - "<red>ぼーっとしない！</red> <gray>鈴の音に合わせて盾ですよ"
+    # ジャストガードに成功したとき（参加者みんなに。<player> = 成功した人）
+    pass: "<green><bold>よくできました！</bold></green> <white><player></white> <gray>さんのジャストガード、お見事です。ここからは本番、攻撃も効きますよ！"
+
+# ===== 技 =====
+# hint: その技を初めて使うときに出す説明（MiniMessage）
+# weight: 選ばれやすさ（大きいほど選ばれやすい。0 で使わない）
+# animation: Blockbench のアニメーション名
+# bones: 当たり判定に使うボーン名（ボーン直下のキューブの形で判定する）
+# hit-windows: 当たり判定のある区間 "開始-終了"（両端を含む）。区間ごとに1人1回当たる
+skills:
+  # 最初の教え（召喚直後に1回）: リソースパックが反映されていないときの直し方。
+  # 伝えている end-ticks の間は止まっている（動かない・攻撃しない・ダメージを受けない・制限時間とクリアタイムも進まない）。
+  # end-ticks を 0 にするか、extra.hints を false にすると出さない
+  resource_pack:
+    weight: 0
+    # 空ならアニメなし（待機のまま）
+    animation: ""
+    # 200 = 10秒
+    end-ticks: 200
+    hint: "<gray>戦う前に確認です。<yellow>リソースパックが反映されていない</yellow>ときは、アドオンを<green>ON</green>にしないとダメですよ！<newline><white>① <click:run_command:'/resourcepack setting'><hover:show_text:'クリックで設定を開く'><aqua><underlined>/resourcepack setting</underlined></aqua></hover></click> → アドオン → <green>ON</green><newline>② <click:run_command:'/resourcepack apply'><hover:show_text:'クリックで反映する'><aqua><underlined>/resourcepack apply</underlined></aqua></hover></click> で反映</white><newline><gray>少し待ちますね。その間、私は止まっています"
+
+  # 登場の挨拶（最初の教えの後に1回）: 花びらを舞わせる。その間に受けるダメージは taken-damage-multiplier 倍
+  greeting:
+    weight: 0
+    # 空ならアニメなし（待機のまま）
+    animation: ""
+    end-ticks: 30
+    taken-damage-multiplier: 0.5
+    hint: "<gray>よろしくお願いします！ ボスの技には必ず<yellow>予告</yellow>と、終わった後の<yellow>隙</yellow>があります。よく見てよけて、隙に攻めましょう。<dark_gray>（攻撃を受けると少しの間回復できません）"
+
+  # 少しだけ本気（HP が extra.rage-health-ratio を下回った後）: 花びらが渦を巻いて集まる
+  serious_shift:
+    weight: 0
+    animation: ""
+    end-ticks: 30
+    change-tick: 20
+    taken-damage-multiplier: 0.3
+    hint: "<gray>ここからが本番です！ ボスは<yellow>技をつなげて</yellow>くることがあります。1回よけても気を抜かないで"
+
+  # ジャブの後に溜め斬りが続いたとき（技ではなく、説明だけ）
+  chain:
+    hint: "<gray><white>連携</white>：ジャブの後に溜め斬りが続いた！ 剣が光ったら、もう一度下がろう"
+
+  # ジャストガードの練習の素振り（登場の後、誰かがジャストガードに成功するまでこれだけを繰り返す）
+  # 歩いて近づき、extra.lesson.countdown-ticks の合図（音が高くなっていき、最後に鈴）に合わせて剣を1回振る。弱い
+  lesson_swing:
+    hint: "<gray><aqua>ジャストガードの練習</aqua>：盾をオフハンドに持とう。剣を振ってくるので、<yellow>鈴が鳴った瞬間</yellow>に右クリックで盾を構えて！ 成功するまで私には攻撃が効きません"
+    weight: 1
+    animation: attack4
+    # この距離以内の相手に使う（遠ければ歩いて近づく）
+    range: 24
+    approach-speed: 0.3
+    approach-distance: 2.5
+    approach-max-ticks: 80
+    approach-animation: walk
+    bones: [hit_sword]
+    shape: BOX
+    # 剣が振り下ろされるのは 20tick ごろ
+    hit-windows: ["20-32"]
+    end-ticks: 60
+    damage: 2
+
+  # 花びらの玉：手元に花びらを集めて玉にし、標的へゆっくり投げる。練習が終わった直後に必ず1回投げる
+  # 玉が reflect-radius まで来たときにジャストガードすると、アルファへ跳ね返る（当たると reflect-damage と、stun-ticks のよろめき）
+  petal_orb:
+    hint: "<gray><white>花びらの玉</white>：飛んでくる玉は、近くまで来た瞬間に<aqua>ジャストガード</aqua>すると<yellow>弾き返せる</yellow>！ 跳ね返った玉は私に当たりますよ"
+    weight: 2
+    range: 20
+    animation: attack5
+    # 玉を放つ tick（それまで手元に花びらが集まる）
+    release-ticks: 24
+    # 玉の速さ（ブロック/tick）。ゆっくり
+    speed: 0.35
+    damage: 5
+    hit-radius: 0.9
+    max-range: 28
+    reflect-radius: 2.5
+    reflect-speed: 0.9
+    reflect-damage: 30
+    # 跳ね返った玉が当たったあと、よろめいている時間（その間は攻めどき）
+    stun-ticks: 50
+    end-ticks: 10
+
+  # 初めて玉を弾き返されたとき（技ではなく、説明だけ）
+  reflect:
+    hint: "<gray><aqua>弾き返し！</aqua> お見事です。ほかのボスにも、飛んでくる攻撃を<yellow>ジャストガードで弾き返せる</yellow>ものがあります。たとえば<red>ドラゴンの火球</red>…跳ね返せば空から落とせるかも？"
+
+  # 突進：溜めてから標的へ一直線に突っ込む。当たったプレイヤーはスタン
+  dash:
+    hint: "<gray><white>突進</white>：溜めている間、足元から<red>赤い線</red>が伸びる。線の<yellow>横へ</yellow>よけよう。突っ込んだ後はしばらく止まるので、そこが攻めどき！"
+    weight: 1
+    animation: attack
+    range: 12
+    # 突進開始
+    windup-ticks: 19
+    # 突進・ダメージ判定の終了
+    hit-end-ticks: 35
+    # 技の終了（ここまで静止）
+    end-ticks: 140
+    # 1tick に進む距離（ブロック）
+    speed: 0.9
+    hit-radius: 1.3
+    damage: 10
+    stun-ticks: 60
+
+  # 剣振り：2回斬る
+  sword_slash:
+    hint: "<gray><white>剣振り</white>：剣を構えてから<yellow>2回</yellow>斬ってくる。少し離れて空振りさせ、2回目の後に近づいて叩こう"
+    weight: 1
+    animation: attack2
+    range: 4
+    bones: [hit_sword]
+    # BOX: キューブの箱で判定 / BLADE: キューブの一番長い辺を刃として判定
+    shape: BLADE
+    hit-windows: ["30-51", "140-155"]
+    end-ticks: 190
+    damage: 12
+    # 刃の太さ（半径）の最低値
+    min-blade-radius: 0.15
+
+  # 跳躍：大ジャンプ → 標的を追って急降下 → 衝撃波 → 前進
+  leap:
+    hint: "<gray><white>跳躍</white>：高く跳んで、<light_purple>桃色の輪</light_purple>の所へ落ちてくる。輪が止まったら外へ走ろう。着地の後は隙だらけ！"
+    weight: 1
+    animation: attack3
+    range: 30
+    jump-start-ticks: 7
+    # 最高点に着く
+    peak-ticks: 45
+    # 着地（衝撃波）
+    land-ticks: 68
+    # 前進の終了
+    slide-end-ticks: 150
+    end-ticks: 180
+    # 最高点の高さ（ブロック）
+    jump-height: 14
+    # 急降下にかける時間（短いほど速く落ちる）
+    dive-ticks: 6
+    # 着地の何tick前に着地点を確定するか（大きいほど避けやすい）
+    lock-ticks: 24
+    # 動いている標的の進行方向に、どれだけ先へ落ちるか（ブロック）
+    lead-distance: 2.5
+    # これより遅い動き（ブロック/tick）は止まっているとみなす
+    moving-threshold: 0.05
+    # 標的が消えたとき前方に跳ぶ距離（ブロック）
+    fallback-distance: 8
+    # 着地直後の前進速度（ブロック/tick）。slide-end-ticks までに 0 へ減速
+    slide-speed: 0.35
+    # この技の最中に受けるダメージ（隙も含む）
+    taken-damage: 1
+    # 着地の衝撃波
+    impact-radius: 3.5
+    impact-damage: 20
+    # 体・剣の当たり判定
+    bones: [box_body, hit_sword]
+    hit-windows: ["28-100"]
+    damage: 10
+
+  # ジャブ：素早い近接攻撃
+  jab:
+    hint: "<gray><white>ジャブ</white>：素早い一撃。正面に立ち続けず、横へ回り込もう"
+    weight: 1
+    animation: attack4
+    range: 4
+    bones: [hit_sword]
+    shape: BOX
+    hit-windows: ["20-45"]
+    end-ticks: 60
+    damage: 6
+
+  # 溜め斬り：剣が光ってから斬る
+  charge_slash:
+    hint: "<gray><white>溜め斬り</white>：剣が光って溜めてから斬る。光ったら下がるか、当たる直前に盾を構えてジャストガードしよう"
+    weight: 1
+    animation: attack5
+    range: 4
+    bones: [hit_sword]
+    shape: BOX
+    hit-windows: ["20-40"]
+    end-ticks: 54
+    damage: 6

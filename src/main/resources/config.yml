@@ -3,5 +3,231 @@
 # メッセージの先頭に付ける文字列（MiniMessage 形式）
 prefix: "<gray>[<gold>EastBoss</gold>]</gray> "
 
-# true にするとデバッグ用のログを出す
-debug: false
+# デバッグ設定
+debug:
+  # デバッグモード。/eb debug でも切り替えられる（切り替えるとこのファイルに保存される）
+  # true の間、デバッグ用のログをコンソールに出す
+  enabled: false
+  # true にすると座標を設定したとき、その位置にパーティクルを表示する
+  show-location: true
+  # デバッグモード中、ボスの技の当たり判定をパーティクルで表示する
+  # （デバッグモードが OFF なら、ここが true でも表示しない）
+  show-hitbox: true
+
+# BetterModel の自動リロード（サーバーの読み込みが終わった後に、コンソールから実行する）
+bettermodel:
+  # サーバーの /reload の後に、自動で /bettermodel reload を実行する
+  reload-after-server-reload: true
+  # サーバーの起動時にも実行する（起動時は BetterModel 自身が読み込むので、普通は false でよい）
+  reload-on-startup: false
+  # 読み込みが終わってから実行するまでの tick（20 = 1秒）
+  reload-delay-ticks: 20
+  # 実行するコマンド（先頭の / は不要）
+  reload-command: "bettermodel reload"
+
+# 座標設定（/eb location set）の自動補正
+# 位置は常に足元のブロックの中心にそろえる
+location:
+  # 向き（yaw）を何度刻みにそろえるか。45 なら 8 方向、90 なら東西南北。0 以下でそろえない
+  yaw-snap: 45
+  # true にすると上下の向き（pitch）を 0（水平）にそろえる
+  reset-pitch: true
+
+# ボスがプレイヤーに与える状態異常（全ボス共通）
+status:
+  stun:
+    # スタン中に付ける低速化の強さ（見た目用。0 = レベル1）
+    slow-amplifier: 3
+  # ボスの攻撃が当たったプレイヤーを回復不可にする時間（全ボス共通・tick）。100 = 5秒。0 で無効
+  heal-lock-ticks: 100
+  # リスポーンしてから、ボスに狙われず、ボスと手下の攻撃も当たらない時間（全ボス共通・tick）。60 = 3秒
+  # （死ぬ前の標的を、技が遠いリスポーン地点まで追いかけないように。リスポーン直後の袋叩きも防ぐ）
+  respawn-protection-ticks: 60
+
+# ジャストガード（全ボス共通）。盾を右クリックで構えた瞬間から window-ticks の間にボスの攻撃を受けると、
+# 盾のガード破壊（shield.break-damage）がたまらない。ダメージ・ノックバックも無し。澄んだ金属音が鳴る
+just-guard:
+  # 受付の長さ（tick）
+  window-ticks: 6
+  # 構えてからこの間は、構え直しても受付が開かない（連打の防止・tick）。ジャストガードできたらすぐ構え直せる
+  lockout-ticks: 16
+  # ボスの方をこの角度（度）以内で向いているときだけ
+  facing-degrees: 90
+
+# 全ボス共通の設定
+boss:
+  # ボスが1回の攻撃で受けるダメージの上限（全ボス共通）。0 以下で上限なし
+  # メイスの落下攻撃などで一撃で溶けないようにする
+  max-damage-per-hit: 30
+  # 飛び道具（矢・トライデントなど）でボスに与えるダメージの倍率（全ボス共通）。
+  # ボスの yml で immunity.projectile: true にしたボスは、飛び道具をすり抜ける
+  projectile-damage-multiplier: 0.5
+
+# 旅商人から始めるボス戦
+battle:
+  # 募集の通知が届く範囲（募集を始めた人からの距離・ブロック）
+  notify-radius: 100
+  # 参加者は1人この回数倒れると脱落する（そのボス戦にはもう加われない）。全員が脱落したら敗北
+  # 勝ったときに「倒した」ことになる（次のボスが解放される）のは、脱落していない人だけ
+  death-limit: 2
+  # 募集を始めてからボスが出てくるまでの秒数（この間に参加者を募る。1〜120）
+  countdown-seconds: 5
+  # カウントダウン表示の高さ（ボス召喚地点からのブロック数）
+  display-height: 2.5
+  # true にすると、参加者の画面にもカウントダウンとボス出現をタイトルで表示する
+  countdown-title: true
+  # 戦闘中、参加者が誰も「いない」状態がこの秒数続いたら、ボスは撤退する
+  # 「いない」= ログアウト・別ワールド・召喚地点から leave-radius ブロック以上離れている（倒れて復活待ちの人はいる扱い）
+  absent-seconds: 15
+  # true にすると、戦闘中のボスバーにボス出現からの経過時間を表示する
+  bossbar-timer: true
+  leave-radius: 64
+  # 参加者が倒れたときの死亡ログ・倒れた回数・脱落の知らせを、参加者のほかに、ボスからこの距離（ブロック）以内にいる人にも見せる（0 で参加者だけ）
+  death-log-radius: 64
+
+# クリアタイムの記録（保存先は records.yml）。1人で討伐したらソロ記録、2人以上なら集団討伐の記録に残る
+# どちらも記録の保持者（名前と UUID）を残す。自己ベストはソロだけ
+record:
+  # ボスごとのランキングに残す件数
+  ranking-size: 10
+
+# ボス選択メニュー（旅商人を右クリック）
+menu:
+  title: "<dark_purple>ボスを選ぶ"
+
+# ボスの解放（順番に倒していく）。倒したボスは progress.yml に残る
+# 前のボスを倒すまで、次のボスのボス戦は始められない（ほかの人が始めた戦いに参加するのは自由。勝てば参加者全員が倒したことになる）
+# OP（権限 eastboss.progress.bypass か eastboss.admin）は、いつでもどのボスでも始められる
+# 管理: /eb progress info|grant|revoke <プレイヤー> [ボスID|all]
+progression:
+  # false にすると、最初から全部のボスに挑める
+  enabled: true
+  # 挑む順番（ボスID）。ここに無いボスは最初から挑める
+  order: [tutorial_alpha, gunner, dragon, assassin, giant, veigar, knight]
+  # まだ解放していないボスの、メニューでの名前とアイコン（ボスの名前・見た目は伏せる）
+  hidden-name: "<dark_gray><bold>？？？"
+  hidden-icon: GRAY_DYE
+
+# 旅商人（ボス召喚 NPC）の設定
+trader:
+  # 頭上に表示する名前（MiniMessage 形式）。変えたら /eb trader spawn で召喚し直すと反映される
+  name: "<dark_gray>✦</dark_gray> <gradient:#FFE29A:#E8913A><bold>旅商人</bold></gradient> <dark_gray>✦</dark_gray> <gray><italic>強者の噂、売ります</italic></gray>"
+
+# メッセージ（MiniMessage 形式）
+# <type> などのタグはコマンド実行時に置き換えられる
+messages:
+  reload: "<green>設定を再読み込みしました"
+  reload-failed: "<red>一部の設定の読み込みに失敗しました。コンソールを確認してください"
+  player-only: "<red>このコマンドはプレイヤーのみ実行できます"
+  location-set: "<green><type> の座標を設定しました: <white><world> <x>, <y>, <z> <gray>(yaw <yaw> / pitch <pitch>)"
+  location-not-set: "<red><type> の座標がまだ設定されていません"
+  location-world-missing: "<red><type> のワールド <world> が見つかりません"
+  location-info: "<yellow><type><gray>: <white><world> <x>, <y>, <z> <gray>(yaw <yaw> / pitch <pitch>)"
+  location-teleport: "<green><type> の座標にテレポートしました"
+  trader-spawned: "<green>旅商人を召喚しました"
+  trader-removed: "<green>旅商人を <count> 体削除しました"
+  trader-punched: "<yellow>クリエイティブモードで殴ったため、旅商人を削除しました"
+  boss-summoned: "<green><boss> を召喚しました"
+  boss-unknown: "<red>ボス <id> は登録されていません。/eb boss list で確認してください"
+  boss-model-missing: "<red>モデル <model> が BetterModel に見つかりません"
+  boss-list: "<yellow>登録済みのボス: <white><ids> <gray>(召喚中: <count> 体)"
+  boss-removed: "<green>ボスを <count> 体削除しました"
+  debug-on: "<yellow>デバッグモードを <green>ON</green> にしました"
+  debug-off: "<yellow>デバッグモードを <red>OFF</red> にしました"
+  # ---- ボス選択メニュー ----
+  menu-boss-health: "<gray>HP: <white><health>"
+  menu-boss-record: "<gray>ソロ記録: <white><time></white> <gray>(<players>)"
+  menu-boss-record-none: "<gray>ソロ記録: まだ記録なし"
+  # <count> = 人数
+  menu-boss-group-record: "<gray>集団討伐ベスト: <white><time></white> <gray>(<players> の <count>人)"
+  menu-boss-group-record-none: "<gray>集団討伐ベスト: まだ記録なし"
+  menu-boss-personal: "<gray>自己ベスト: <aqua><time>"
+  menu-boss-personal-none: "<gray>自己ベスト: -"
+  menu-boss-click: "<yellow>クリックで参加者を募集"
+  # まだ解放していないボスの説明（<prev> = 前のボスの名前。前のボスもまだなら伏せた名前）
+  menu-boss-locked: "<gray><prev> <gray>を倒すと解放"
+  # ---- ボス戦 ----
+  battle-busy: "<red>今は別のボス戦が進行中です"
+  # <join> は参加ボタン（battle-join-button）に置き換わる
+  battle-recruit: "<white><player></white> が <boss> <yellow>への挑戦者を募集中！（<seconds>秒）</yellow> <join>"
+  battle-join-button: "<green><bold>[参加する]</bold></green>"
+  battle-joined: "<green>ボス戦に参加しました"
+  battle-already-joined: "<gray>すでに参加しています"
+  battle-join-closed: "<red>募集は締め切られました"
+  # 召喚地点に出るカウントダウン（<newline> で改行）
+  battle-countdown-display: "<boss><newline><red><bold><count></bold></red><newline><gray>参加者 <white><players></white>人"
+  # 参加者の画面に出るカウントダウンのタイトル
+  battle-countdown-title: "<red><bold><count>"
+  battle-countdown-subtitle: "<boss> <gray>出現まで"
+  battle-start-title: "<boss>"
+  battle-start-subtitle: "<red>が現れた！"
+  battle-start: "<boss> <red>が現れた！</red> <gray>（1人<limit>回倒れると脱落。全員脱落で敗北）"
+  battle-death: "<white><player></white> <red>が倒れた…</red> <gray>(<count>/<limit>)"
+  # 1人が倒れすぎて脱落したとき（全員に知らせる）と、脱落した本人の画面に出るタイトル
+  battle-eliminated: "<white><player></white> <dark_red>は力尽きた。このボス戦にはもう加われない"
+  battle-eliminated-title: "<dark_red><bold>脱落"
+  battle-eliminated-subtitle: "<gray>仲間の戦いを見守ろう"
+  # 全員が倒れて全滅したとき、参加者全員の画面に出るタイトル（脱落のタイトルの代わり）
+  battle-wiped-title: "<dark_red><bold>全滅"
+  battle-wiped-subtitle: "<gray>また挑戦しよう"
+  # ボス戦の間に乗り物に乗っていたとき（降ろされる）
+  battle-dismounted: "<gray>ボス戦の間は乗り物に乗れない"
+  # ボスの攻撃を盾で防ぎ続けて、盾が壊れたとき（<seconds> = 使えない秒数）
+  shield-broken: "<red><bold>盾が壊れた！</bold></red> <gray><seconds>秒間 使えない"
+  # ジャストガードしたとき（アクションバー）
+  just-guard: "<aqua><bold>ジャストガード！</bold></aqua>"
+  # 飛んでくる弾をジャストガードで弾き返したとき（アクションバー）
+  just-guard-reflect: "<aqua><bold>弾き返した！</bold></aqua>"
+  battle-failed: "<red>全員が力尽きた…</red> <boss> <gray>は去っていった"
+  battle-victory: "<gold><bold>討伐成功！</bold></gold> <boss> <yellow>を倒した"
+  # 2人以上で討伐したときの与ダメージ（多い順。<rank> 順位 / <player> 名前 / <damage> ダメージ / <percent> 全体に対する割合）
+  battle-damage-header: "<gold>━━━ 与ダメージ ━━━"
+  battle-damage-line: " <yellow><rank>.</yellow> <white><player></white> <gray>— <gold><damage></gold> <dark_gray>(<percent>%)"
+  battle-ended: "<boss> <gray>は姿を消した"
+  battle-abandoned: "<gray>挑戦者がいなくなったため、</gray><boss> <gray>は去っていった"
+  battle-cancelled: "<red>管理者によってボス戦が中止されました"
+  battle-cancel-done: "<green>ボス戦を中止しました"
+  battle-none: "<gray>進行中のボス戦はありません"
+  # 募集を始めた人（か管理者）が旅商人のメニューからボス戦を中止したとき
+  battle-player-cancelled: "<white><player></white> <gray>がボス戦を中止した。</gray><boss> <gray>は去っていった"
+  # ---- 旅商人のメニューの「ボス戦をやめる」ボタン（ボス戦の進行中だけ出る。2回クリックで中止） ----
+  menu-cancel-name: "<red><bold>ボス戦をやめる"
+  menu-cancel-boss: "<gray>進行中: <boss>"
+  menu-cancel-click: "<yellow>クリックで中止"
+  menu-cancel-confirm: "<red><bold>もう一度クリックで中止する"
+  menu-cancel-denied: "<dark_gray>中止できるのは、募集を始めた人だけ"
+  record-reset: "<green><boss> <green>の記録をすべて消しました"
+  record-reset-all: "<green>すべてのボスの記録を消しました"
+  # <player> の記録（自己ベストと、その人がランキングに載っている分）だけを消したとき
+  record-reset-player: "<green><boss> <green>の</green> <white><player></white> <green>の記録を消しました"
+  record-reset-player-all: "<green>すべてのボスの</green> <white><player></white> <green>の記録を消しました"
+  # ---- クリアタイム・記録 ----
+  # 戦闘中のボスバーの表示（<boss> = ボスの名前、<time> = 経過時間）
+  battle-bossbar-timer: "<boss> <gray>| <white><time>"
+  battle-clear-time: "<yellow>クリアタイム: <white><bold><time>"
+  record-ranked: "<gold>ソロランキング <bold><rank>位</bold> に入りました！"
+  record-group-ranked: "<gold>集団討伐ランキング <bold><rank>位</bold> に入りました！"
+  record-first-clear: "<aqua>初討伐！ 自己ベスト <white><time>"
+  record-new-best: "<aqua>自己ベスト更新！ <white><time> <gray>(前回 <previous>)"
+  ranking-header: "<gold>===== <boss> <gold>ソロ記録 ====="
+  ranking-entry: "<yellow><rank>. <white><time> <gray><players>"
+  ranking-group-header: "<gold>===== <boss> <gold>集団討伐ランキング ====="
+  ranking-group-entry: "<yellow><rank>. <white><time> <gray><players> <dark_gray>(<count>人)"
+  ranking-empty: "<gray>まだ記録がありません"
+  ranking-personal: "<aqua>あなたの自己ベスト: <white><time>"
+  ranking-personal-none: "<gray>あなたの自己ベスト: まだ記録なし"
+  # ---- ボスの解放 ----
+  battle-locked: "<red>まだ挑めない。先に</red> <prev> <red>を倒そう</red> <gray>（ほかの人の戦いに参加して倒してもよい）"
+  progress-unlocked: "<gold><bold>新しいボスが解放された！</bold></gold> <boss>"
+  progress-complete: "<gold><bold>すべてのボスを倒した！</bold></gold> <yellow>おめでとう"
+  progress-info: "<gray><player> の討伐: <white><bosses>"
+  progress-granted: "<green><player> を <boss> 討伐済みにしました"
+  progress-revoked: "<green><player> の <boss> の討伐記録を消しました"
+  player-unknown: "<red>プレイヤー <player> が見つかりません"
+  # ---- /eb config ----
+  config-value: "<gray><file> の <white><key></white> = <aqua><value>"
+  config-set: "<green><file> の <white><key></white> を <aqua><value></aqua> にしました <gray>（ボスの設定は次に召喚したボスから）"
+  config-unknown-file: "<red><file> という設定ファイルはありません（config かボスID）"
+  config-unknown-key: "<red><file> に <key> という設定はありません"
+  config-section: "<red><key> は下にいくつも設定がある項目です。その下のキーを指定してください"
+  config-invalid: "<red><key> には <type> を指定してください"

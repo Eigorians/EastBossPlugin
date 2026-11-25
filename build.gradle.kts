@@ -10,7 +10,7 @@ repositories {
     maven("https://repo.papermc.io/repository/maven-public/")
 }
 
-// BetterModel のバージョン（API とテストサーバー用 jar で揃える）
+// BetterModel のバージョン（run/plugins に置く jar と揃える）
 val betterModelVersion = "3.6.0"
 
 dependencies {
@@ -35,10 +35,11 @@ tasks {
         // Your plugin's jar (or shadowJar if present) will be used automatically.
         minecraftVersion("26.3")
         jvmArgs("-Xms2G", "-Xmx2G")
-        // テストサーバーに BetterModel を自動導入する
-        downloadPlugins {
-            modrinth("bettermodel", betterModelVersion)
-        }
+        // run-paper が実行時に Task.project を参照するので、configuration cache（gradle.properties で有効）に対応していない。
+        // このタスクだけ対応外として扱い、runServer のときはキャッシュを使わずに動かす
+        notCompatibleWithConfigurationCache("run-paper の runServer が実行時に Task.project を参照するため")
+        // BetterModel は run/plugins に Paper 版の jar を手動で置く
+        // （downloadPlugins の modrinth 指定だと Spigot 版が落ちてきて起動しないため使わない）
     }
 
     processResources {

@@ -1,0 +1,532 @@
+# 影の暗殺者 の設定
+# 時間はすべて tick（1秒 = 20tick）。技の tick は「技の開始から」の経過時間
+# 変更は /eb reload の後に召喚したボスから反映される
+#
+# 歩かずに、いつも小刻みなステップで動く。技の合間に殴ると、ときどき見切られる（すり抜けて苦無を投げ返す）。
+# 技を出している最中や、技の後の隙に殴れば必ず当たる。
+# 影に潜っている間は攻撃が一切当たらない。影は明るい所（松明など）に入ると引きずり出される。
+# 本気になると分身を使う。HP 25% で、分身の囲み（本物を見つけて叩く大技）。
+
+# ===== 基本 =====
+name: "<gradient:#b27cff:#5a1a8a>影の暗殺者</gradient>"
+model: assassin
+# 見た目の大きさ。モデルは元が約1.7ブロックなので、1.2 で約2ブロック
+model-scale: 1.2
+# 殴れる当たり判定の大きさ（ハスクの倍率）。1.0 で高さ約2ブロック
+entity-scale: 1.0
+# 素早くてかわすので、HP は少なめ
+max-health: 4400
+# ネザライト全身・ダメージ軽減IV・耐性I を想定。5 で連撃1発が約1ハート、影渡りの斬り上げが約2.5ハート
+damage-multiplier: 5
+# 旅商人からのボス戦で、参加者が1人増えるごとに増やす HP の割合（0.2 なら 1人 1倍・2人 1.2倍・3人 1.4倍）
+health-per-player: 0.2
+# 技と技の間の隙。この間は小刻みなステップで動く
+skill-gap-ticks: 14
+# 召喚から消えるまでの時間（0 以下で無制限）。12000 = 10分
+lifetime-ticks: 12000
+
+# ===== 標的 =====
+target:
+  search-range: 28
+  max-height: 6
+
+# ===== ボスバー =====
+bossbar:
+  color: PURPLE
+  overlay: NOTCHED_10
+  range: 56
+
+# ===== 死亡 =====
+death:
+  animation: death
+  # のけぞって膝をつき、影に溶けて沈む（3秒）
+  ticks: 64
+
+# ===== 盾 =====
+# 盾で防いだダメージ（damage-multiplier を掛けた後の値）が break-damage たまると盾が壊れ、disable-ticks の間使えなくなる
+# skill-multipliers: 技ごとに、防いだときにたまる量の倍率（技ID: 倍率。書いていない技は 1）
+shield:
+  # ジャストガードがあるので、ふつうのガードで受け続けたときは少し早めに壊れる（前は 90）
+  break-damage: 72
+  disable-ticks: 100
+  skill-multipliers:
+    # 苦無は盾で受けやすい
+    kunai: 0.5
+    kunai_rage: 0.5
+    clone_kunai: 0.5
+    dodge: 0.5
+    dodge_rage: 0.5
+
+# ===== 耐性 =====
+immunity:
+  # true なら矢などの飛び道具をすり抜ける。false なら当たる（ダメージは config.yml の boss.projectile-damage-multiplier 倍）
+  projectile: false
+  potion: true
+  vertical-knockback: true
+
+# ===== 暗殺者固有 =====
+extra:
+  # この HP の割合以下で本気になる（目が赤くなり、刃に紫の光。分身と影舞を使う）
+  rage-health-ratio: 0.5
+  # 目の色（本気のときは rage-eye-color）
+  eye-color: "#B27CFF"
+  rage-eye-color: "#FF2A3A"
+  # この HP の割合以下で瀕死になる（すぐに分身の囲みを使い、その後もときどき使う）
+  final-health-ratio: 0.25
+
+  # ---- 技の合間の小刻みなステップ ----
+  # 1回のステップで進む距離（ブロック。この間でランダム）と、かける tick
+  step-distance-min: 1.6
+  step-distance-max: 2.6
+  step-ticks: 3
+  # ステップとステップの間に止まる tick（この間でランダム）
+  step-pause-min: 4
+  step-pause-max: 9
+  # この距離を保つように、標的のまわりを横へ刻む
+  preferred-distance: 4.5
+  # 標的がこれより遠いとジグザグに詰め寄り、これより近いと斜め後ろへ跳び退く
+  close-in-distance: 7
+  back-off-distance: 2.2
+  # 召喚地点からこのブロック数より離れると、ステップが召喚地点の方へ寄る
+  home-radius: 14
+
+  # ---- 見切り ----
+  # 技の合間（ステップ中）に近接攻撃を受けたとき、かわす確率（0〜1）と、次にかわせるようになるまでの tick
+  dodge-chance: 0.45
+  dodge-cooldown-ticks: 80
+  # かわされたプレイヤーに出す表示（MiniMessage）
+  dodge-message: "<gray>見切られた <dark_gray>— 技の隙を狙え"
+
+  # ---- 影 ----
+  # 影の位置のブロックの明るさ（松明などブロックの光だけ。日光は数えない）がこれ以上だと、影から引きずり出される。
+  # 明るい所では影に潜れない。松明は真上で 14、隣で 13。0 にすると光に弱くなくなる
+  light-expose-level: 13
+
+# ===== 技 =====
+skills:
+  # 登場（召喚直後に1回）: 足元に影が広がり、浮かび上がって、両手の短刀を回して構える
+  spawn_intro:
+    weight: 0
+    animation: spawn
+    end-ticks: 44
+    taken-damage-multiplier: 0.5
+
+  # 本気モードへの移行（HP が rage-health-ratio を下回った後、今の技が終わってから）
+  # 腕を交差して身を沈め（力を溜める）、change-tick で影がはじけて周りを吹き飛ばす
+  rage_shift:
+    weight: 0
+    animation: rage_shift
+    end-ticks: 48
+    change-tick: 24
+    impact-radius: 6
+    knockback: 1.2
+    taken-damage-multiplier: 0.3
+
+  # 挑発（プレイヤーを倒した一撃の後）: 短刀を振って血を払い、くるりと回す
+  taunt:
+    weight: 0
+    animation: taunt
+    end-ticks: 28
+    taken-damage-multiplier: 1.0
+
+  # 連撃: 前へのステップで目の前まで詰め、1振りごとに踏み込みながら 右の薙ぎ → 左の返し → 十字斬り
+  combo:
+    weight: 4
+    animation: combo
+    range: 10
+    # 振る前の詰め寄り（前ステップを繰り返す）
+    approach-speed: 0.6
+    approach-distance: 2.2
+    approach-max-ticks: 20
+    approach-animation: step_front
+    # 両手の短刀の刃で判定
+    bones: [dagger_r, dagger_l]
+    shape: BLADE
+    min-blade-radius: 0.3
+    hit-windows: ["2-5", "8-10", "14-17"]
+    # 1振りごとの踏み込み（標的との距離が lunge-stop-distance 以下なら踏み込まない）
+    lunge-windows: ["1-3", "7-9", "13-15"]
+    lunge-speed: 0.3
+    lunge-stop-distance: 1.4
+    end-ticks: 28
+    damage: 4
+    knockback: 0.35
+
+  # 本気の連撃: 右・左・右・回転斬り・十字斬りの5連撃
+  combo_rage:
+    weight: 4
+    animation: combo_rage
+    range: 11
+    approach-speed: 0.7
+    approach-distance: 2.2
+    approach-max-ticks: 20
+    approach-animation: step_front
+    bones: [dagger_r, dagger_l]
+    shape: BLADE
+    min-blade-radius: 0.3
+    hit-windows: ["2-4", "6-9", "11-14", "19-25", "27-30"]
+    lunge-windows: ["1-2", "6-7", "11-12", "18-21", "27-28"]
+    lunge-speed: 0.3
+    lunge-stop-distance: 1.4
+    end-ticks: 40
+    damage: 3.5
+    knockback: 0.3
+
+  # 影渡り: 沈んで影になり、標的の背後へ這い寄って、飛び出しながら斬り上げる
+  # 影の間は攻撃が当たらない。飛び出す所は影が広がって紫の輪が出る（鼓動の音）。飛び出した後が殴りどき
+  # 影が明るい所（extra.light-expose-level）に入ると引きずり出され、よろめく
+  shadow_strike:
+    weight: 3
+    range: 22
+    # 標的がこれより近いときは使わない
+    min-range: 3
+    sink-animation: sink
+    sink-ticks: 10
+    # この tick でモデルが消える（沈み切る）
+    hide-tick: 8
+    # 影の速さ（1tick に進むブロック。0.5 で1秒に10ブロック。走れば少し引き離せる）
+    travel-speed: 0.5
+    travel-max-ticks: 60
+    # 標的の背後のこの距離に出る。標的に lock-distance まで近づくと、行き先が固まる
+    behind-distance: 2.0
+    lock-distance: 3.5
+    # 飛び出す前の予告
+    warning-ticks: 12
+    emerge-animation: emerge
+    emerge-ticks: 20
+    # 斬り上げの判定（飛び出してからの tick）と範囲
+    hit-windows: ["2-7"]
+    hit-radius: 2.6
+    damage: 9
+    knockback: 0.5
+    launch: 0.6
+    # 飛び出した後の隙（受けるダメージの倍率）
+    recover-ticks: 16
+    recover-damage-multiplier: 1.3
+    # 分身の数（本気だけ）
+    decoys: 0
+    # 光にあぶり出されたとき
+    exposed-animation: exposed
+    exposed-ticks: 30
+    exposed-damage-multiplier: 1.6
+    exposed-message: "<gold>光に影をあぶり出した！ <yellow>今のうちに叩け"
+
+  # 本気の影渡り: 分身の影が2つ。分身は本物より先に弾けて、近くの相手を斬る。本物の影にだけ目の光が浮かぶ
+  shadow_strike_rage:
+    weight: 3
+    range: 24
+    min-range: 3
+    sink-animation: sink
+    sink-ticks: 10
+    hide-tick: 8
+    travel-speed: 0.6
+    travel-max-ticks: 60
+    behind-distance: 2.0
+    lock-distance: 3.5
+    warning-ticks: 10
+    emerge-animation: emerge
+    emerge-ticks: 20
+    hit-windows: ["2-7"]
+    hit-radius: 2.6
+    damage: 9
+    knockback: 0.5
+    launch: 0.7
+    recover-ticks: 14
+    recover-damage-multiplier: 1.3
+    decoys: 2
+    decoy-damage: 4
+    decoy-radius: 2.0
+    exposed-animation: exposed
+    exposed-ticks: 30
+    exposed-damage-multiplier: 1.6
+    exposed-message: "<gold>光に影をあぶり出した！ <yellow>今のうちに叩け"
+
+  # 苦無: 左の短刀を苦無に持ち替え、扇状に3本投げる。扇の隙間に入るか、横へ走ってかわす
+  # 苦無は目に見える速さで飛び、ブロックで止まる（bullet の項目はガンナーの弾と同じ）
+  kunai:
+    weight: 3
+    animation: throw
+    range: 18
+    min-range: 4
+    # 手を離す tick（アニメに合わせてある）
+    release-ticks: [7]
+    end-ticks: 16
+    count: 3
+    fan-degrees: 30
+    # 標的の動きをどれだけ見越すか（0 なら今いる所）
+    lead-ratio: 0.3
+    bullet:
+      speed: 1.1
+      damage: 3
+      hit-radius: 0.3
+      max-range: 28
+      spread-degrees: 0
+      ignore-invulnerability: true
+      knockback: 0.1
+      color: "#CDD4E6"
+      size: 1.0
+
+  # 本気の苦無: 5本の扇を2回
+  kunai_rage:
+    weight: 3
+    animation: throw_double
+    range: 20
+    min-range: 4
+    release-ticks: [7, 19]
+    end-ticks: 28
+    count: 5
+    fan-degrees: 50
+    lead-ratio: 0.4
+    bullet:
+      speed: 1.25
+      damage: 3
+      hit-radius: 0.3
+      max-range: 30
+      spread-degrees: 0
+      ignore-invulnerability: true
+      knockback: 0.1
+      color: "#E0B8FF"
+      size: 1.0
+
+  # 影縫い: 標的の足元（動きを見越した所）へ苦無を投げ下ろす。刺さる所に紫の輪
+  # 刺さったとき輪の中にいたプレイヤーは影を縫いとめられて動けない → すぐに連撃が来る
+  shadow_bind:
+    weight: 2
+    animation: bind_throw
+    range: 14
+    min-range: 3
+    # 手を離す tick（アニメに合わせてある）
+    release-ticks: 8
+    # 苦無が飛んでいる時間と、放物線の高さ
+    flight-ticks: 12
+    arc-height: 3
+    count: 1
+    lead-ratio: 0.6
+    bind-radius: 1.6
+    stun-ticks: 30
+    damage: 3
+    # 縫いとめたら、続けて連撃で斬りかかる
+    follow-up: true
+    end-ticks: 24
+    bind-message: "<dark_purple><bold>影を縫いとめられた！"
+
+  # 本気の影縫い: 3本（2本目からは標的のまわりにばらまく）
+  shadow_bind_rage:
+    weight: 2
+    animation: bind_throw
+    range: 16
+    min-range: 3
+    release-ticks: 8
+    flight-ticks: 12
+    arc-height: 3
+    count: 3
+    spread-radius: 2.5
+    lead-ratio: 0.6
+    bind-radius: 1.6
+    stun-ticks: 30
+    damage: 3
+    follow-up: true
+    end-ticks: 24
+    bind-message: "<dark_purple><bold>影を縫いとめられた！"
+
+  # 影舞（本気のときだけ）: 標的を貫く線を予告し、線に沿って一瞬で駆け抜ける一閃を5回。
+  # 最後に跳び上がって、標的のいた所へ突き下ろす（輪の予告）。その後は疲れ果てて片膝をつく（殴りどき）
+  # 線は構えた瞬間に固まるので、予告を見てから線の横へ逃げる
+  blade_dance:
+    weight: 2
+    range: 16
+    ready-animation: dash_ready
+    dash-animation: dash
+    dashes: 5
+    # 1回目の予告と、2回目からの予告（最後の3tick は赤くなる）
+    first-warning-ticks: 16
+    warning-ticks: 9
+    # 線の端まで駆け抜ける時間
+    dash-ticks: 3
+    # 標的の向こうへ駆け抜ける距離と、線の最大の長さ
+    overshoot: 3.5
+    length: 16
+    # 線の幅（この距離に触れると斬られる）
+    line-width: 1.1
+    damage: 6
+    knockback: 0.4
+    # 駆け抜けている間に受けるダメージの倍率
+    taken-damage-multiplier: 0.5
+    # 跳び上がりと突き下ろし（finish-land-tick で着地。アニメに合わせてある）
+    finish-animation: dance_finish
+    finish-land-tick: 11
+    finish-ticks: 26
+    jump-height: 5
+    impact-radius: 3.2
+    impact-damage: 10
+    launch: 0.7
+    # 疲れ果てる
+    exhausted-animation: tired
+    exhausted-ticks: 60
+    exhausted-end-animation: tired_end
+    exhausted-end-ticks: 10
+    exhausted-damage-multiplier: 1.5
+
+  # ===== 分身 =====
+  # 分身は本体と同じ見た目。殴ると煙になって消える（矢は当たらない）
+
+  # 分身の囲み（瀕死）: 印を結んで煙に消え、標的のまわりに円になって clones 体で現れる。本物は1体だけ
+  # 囲んでいる間、全員そろって円の上を小刻みに回る。本物の足元にだけ影がある
+  # 本物にダメージを与えれば見破れる（分身が消えて、本物がよろめく殴りどき）
+  # 見破れないまま wait-ticks たつと、全員が順に予告の線に沿って突っ込んでくる（最後が本物）
+  clone_surround:
+    weight: 1
+    range: 20
+    animation: clone_cast
+    # 印を結ぶ時間と、煙に消える tick（アニメに合わせてある）
+    cast-ticks: 16
+    smoke-tick: 12
+    # 本物も含めた数と、円の半径
+    clones: 4
+    radius: 5
+    appear-animation: clone_appear
+    appear-ticks: 12
+    # 囲んでいる時間（この間に本物を見つける）
+    wait-ticks: 100
+    # 何 tick ごとに、何度ずつ円の上を回るか（step-ticks かけて動く）
+    orbit-degrees: 25
+    orbit-interval-ticks: 14
+    step-ticks: 3
+    # 時間切れの突進: 1体ずつ interval-ticks おきに、warning-ticks の予告の後 dash-ticks で駆け抜ける
+    interval-ticks: 7
+    warning-ticks: 14
+    dash-ticks: 3
+    overshoot: 3
+    line-width: 1.0
+    damage: 8
+    knockback: 0.4
+    ready-animation: dash_ready
+    dash-animation: dash
+    # 見破られたとき: よろめき（exposed-ticks）→ 片膝をつく（exhausted-ticks まで）→ 立ち直る
+    exposed-animation: exposed
+    exposed-ticks: 30
+    exhausted-animation: tired
+    exhausted-ticks: 70
+    exhausted-end-animation: tired_end
+    exhausted-end-ticks: 10
+    exhausted-damage-multiplier: 1.6
+    # 表示（MiniMessage）
+    warn-title: "<dark_purple><bold>影分身"
+    warn-subtitle: "<gray>本物を見つけて叩け <dark_gray>— 足元に影があるのが本物"
+    found-message: "<gold>本物を見破った！ <yellow>今のうちに叩け"
+    fake-message: "<gray>……偽物だ"
+    fail-message: "<red><bold>来る！</bold> 線の外へ"
+
+  # 残像の連撃（本気）: 本体の連撃に合わせて、標的の左右に分身が飛び出し、少し遅れて同じ連撃で斬りかかる
+  # 本体の連撃の設定（combo と同じキー）に、分身の設定を足したもの
+  clone_combo:
+    weight: 2
+    animation: combo
+    range: 10
+    approach-speed: 0.6
+    approach-distance: 2.2
+    approach-max-ticks: 20
+    approach-animation: step_front
+    bones: [dagger_r, dagger_l]
+    shape: BLADE
+    min-blade-radius: 0.3
+    hit-windows: ["2-5", "8-10", "14-17"]
+    lunge-windows: ["1-3", "7-9", "13-15"]
+    lunge-speed: 0.3
+    lunge-stop-distance: 1.4
+    end-ticks: 28
+    damage: 4
+    knockback: 0.3
+    # 分身の数（左右。3 なら標的の向こう側にも）と、標的からの距離
+    clones: 2
+    flank-distance: 2.6
+    # 本体より何 tick 遅れて振るか
+    clone-delay-ticks: 5
+    clone-animation: combo
+    clone-ticks: 28
+    # 分身の斬撃の判定（振り始めてからの tick）と、前の扇の大きさ
+    clone-hit-windows: ["2-5", "8-10", "14-17"]
+    clone-hit-radius: 2.4
+    clone-hit-degrees: 150
+    clone-damage: 3
+
+  # 分身の苦無（本気）: 標的をはさんで左右に分身が現れ、本体と同時に3方向から苦無を扇に投げる
+  # 投げる少し前（lock-ticks）に狙いが固まり、苦無の通り道が細い線で見える
+  clone_kunai:
+    weight: 2
+    range: 18
+    min-range: 4
+    clones: 2
+    # 標的から見て、本体から何度ずれた所に出るか
+    side-angle: 85
+    # 標的からの距離（本体と同じくらい。この範囲に収める）
+    distance: 6
+    max-range: 10
+    appear-animation: clone_appear
+    appear-ticks: 10
+    # 投げる構え（appear-ticks の後に始まる）と、手を離す tick（構えてから）
+    animation: throw
+    release-ticks: 7
+    lock-ticks: 6
+    end-ticks: 30
+    count: 3
+    fan-degrees: 30
+    bullet:
+      speed: 1.15
+      damage: 3
+      hit-radius: 0.3
+      max-range: 26
+      spread-degrees: 0
+      ignore-invulnerability: true
+      knockback: 0.1
+      color: "#E0B8FF"
+      size: 1.0
+
+  # 見切り（殴られてかわしたとき。抽選では選ばれない）: 残像を残して後ろへ跳び、苦無を投げ返す
+  dodge:
+    animation: dodge
+    end-ticks: 12
+    # 跳ぶ区間と距離（真後ろから side-angle 度までずれる）
+    move-start-tick: 0
+    move-end-tick: 4
+    distance: 3.2
+    side-angle: 35
+    # 投げ返す tick と本数
+    shoot-ticks: [6]
+    count: 1
+    fan-degrees: 0
+    # 跳んでいる間に受けるダメージの倍率
+    taken-damage-multiplier: 0.3
+    bullet:
+      speed: 1.3
+      damage: 3
+      hit-radius: 0.3
+      max-range: 24
+      spread-degrees: 0
+      ignore-invulnerability: true
+      knockback: 0.1
+      color: "#CDD4E6"
+      size: 1.0
+
+  # 本気の見切り: 3本投げ返す
+  dodge_rage:
+    animation: dodge
+    end-ticks: 12
+    move-start-tick: 0
+    move-end-tick: 4
+    distance: 3.6
+    side-angle: 35
+    shoot-ticks: [6]
+    count: 3
+    fan-degrees: 24
+    taken-damage-multiplier: 0.3
+    bullet:
+      speed: 1.4
+      damage: 3
+      hit-radius: 0.3
+      max-range: 24
+      spread-degrees: 0
+      ignore-invulnerability: true
+      knockback: 0.1
+      color: "#E0B8FF"
+      size: 1.0

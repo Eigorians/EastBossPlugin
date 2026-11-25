@@ -13,3 +13,11 @@ dependencies:
       required: true
       # BetterModel のクラスを参照するために必要
       join-classpath: true
+
+permissions:
+  eastboss.admin:
+    description: /eastboss コマンドをすべて使える
+    default: op
+  eastboss.progress.bypass:
+    description: ボスの解放の順番に関係なく、どのボスの戦いでも始められる
+    default: op

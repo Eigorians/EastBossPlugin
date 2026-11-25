@@ -1,0 +1,447 @@
+# 焔竜 の設定
+# 時間はすべて tick（1秒 = 20tick）。技の tick は「技の開始から」の経過時間（接近してから始まる技は、接近の後から）
+# 変更は /eb reload の後に召喚したボスから反映される
+#
+# 一度も地面に降りず、常に飛んでいる。技の合間は高く旋回するので、弓などの飛び道具でしか届かない。
+# 技の多く（尻尾の薙ぎ払い・急降下の後・ブレス・撃ち落とされたとき）で低く降りてくるので、そこが殴りどき。
+# 高さ（〜-height）は、地面から当たり判定の底までのブロック数。2 くらいまでなら下から剣が届く
+#
+# 燃える地面（burn-*。火球の着弾・ブレスの跡・急降下の着地）は、しばらく残って中に立つ相手を焼く（地形は壊さない）
+#   burn-radius … 半径 / burn-ticks … 燃えている時間 / burn-damage … 1回のダメージ / burn-interval-ticks … 焼く間隔
+#   fire-ticks  … 当たった相手が燃える時間
+
+# ===== 基本 =====
+name: "<gradient:#ff4a1c:#ffb43a>焔竜 ヴォルカリス</gradient>"
+model: dragon
+# 見た目の大きさ。2.4 で頭から尻尾の先まで約13ブロック、翼を広げて約12ブロック
+model-scale: 2.4
+# 殴れる当たり判定の大きさ（ガストの倍率）。0.75 で約3ブロックの立方体（胴体のまわり）
+entity-scale: 0.75
+# 飛んでいる間は殴りにくいので、ガンナー・ベイガーより少し低め
+max-health: 4800
+# ネザライト全身・ダメージ軽減IV・耐性I を想定。5 で尻尾が約3.5ハート、急降下が約3ハート、ブレスは0.5秒ごとに約1.5ハート
+damage-multiplier: 5
+# 旅商人からのボス戦で、参加者が1人増えるごとに増やす HP の割合（0.2 なら 1人 1倍・2人 1.2倍・3人 1.4倍）
+health-per-player: 0.2
+# 召喚から消えるまでの時間（0 以下で無制限）。12000 = 10分
+lifetime-ticks: 12000
+# 技が終わってから次の技まで、旋回する時間
+skill-gap-ticks: 24
+
+# ===== 標的 =====
+target:
+  # 空の上から見渡すので広め
+  search-range: 32
+  max-height: 8
+
+# ===== ボスバー =====
+bossbar:
+  color: RED
+  overlay: NOTCHED_10
+  range: 64
+
+# ===== 死亡 =====
+death:
+  animation: death
+  # 弱々しく吠え、体の中の炎に焼かれて灰になって崩れる（2.4秒）
+  ticks: 50
+
+# ===== 盾 =====
+# 盾で防いだダメージ（damage-multiplier を掛けた後の値）が break-damage たまると盾が壊れ、disable-ticks の間使えなくなる
+# 2秒防がずにいると、ためた量が少しずつ減る（4秒で上限ぶん）。break-damage を 0 にすると壊れない
+# skill-multipliers: 技ごとに、防いだときにたまる量の倍率（技ID: 倍率。書いていない技は 1）
+shield:
+  # 尻尾と急降下を合わせて3〜4回ほど防ぐと壊れる
+  # ジャストガードがあるので、ふつうのガードで受け続けたときは少し早めに壊れる（前は 120）
+  break-damage: 96
+  disable-ticks: 100
+  # 火球・業火の雨・ブレスは盾で受けても、あまり壊れない
+  skill-multipliers:
+    fireball: 0.3
+    fireball_rage: 0.3
+    inferno_rain: 0.3
+    flame_breath: 0.5
+    flame_breath_rage: 0.5
+
+# ===== 耐性 =====
+immunity:
+  projectile: false
+  # 飛んでいるボスなので、飛び道具のダメージは減らさない（config.yml の boss.projectile-damage-multiplier より優先）
+  projectile-damage-multiplier: 1.0
+  potion: true
+  vertical-knockback: true
+
+# ===== 焔竜固有 =====
+extra:
+  # この HP の割合以下で本気になる
+  rage-health-ratio: 0.5
+  # 本気モードの目と、体の中の炎（腹・のど・口の中）の色
+  rage-eye-color: "#FF3020"
+  rage-core-color: "#FF5A3C"
+  # 技の合間: 標的のまわりを、地面から cruise-height の高さで、半径 orbit-radius で回る（速さはブロック/tick）
+  cruise-height: 7
+  cruise-speed: 0.55
+  orbit-radius: 11
+  # 召喚地点からこれより遠くへは追いかけない（逃げた相手を追って戦いの場を離れない）
+  home-radius: 24
+  # 登場のとき、召喚地点のこれだけ上から降りてくる
+  spawn-height: 22
+  # ちょっとまぬけでチャーミング: 旋回中に sneeze-min-ticks 〜 sneeze-max-ticks（ランダム）ごとにくしゃみをする（害は無い）
+  # 相手を倒すと空中でくるっと回って大喜び、跳ね返された火球が当たると「あちちっ」と首を振る、撃ち落とされると目を回す
+  sneeze-min-ticks: 300
+  sneeze-max-ticks: 600
+  # 撃ち落とし: 地面から knockdown-min-height 以上にいる間に受けたダメージが、最大 HP の knockdown-ratio たまると、
+  # 体勢を崩して落ちる（skills.knockdown）。3秒撃たれずにいると、ためた量は減っていく
+  knockdown-ratio: 0.04
+  knockdown-min-height: 4.5
+  # 撃ち落とされてから、次に撃ち落とせるようになるまで（20秒）
+  knockdown-cooldown-ticks: 400
+
+# ===== 技 =====
+skills:
+  # 登場（召喚直後に1回）: 空から降りてきて、change-tick で翼を広げて吠える（熱風が吹くがダメージはない）
+  spawn_intro:
+    weight: 0
+    animation: spawn
+    end-ticks: 60
+    descend-ticks: 30
+    change-tick: 40
+    taken-damage-multiplier: 0.5
+
+  # 本気モードへの移行（今の技が終わってから1回）: 翼で体を包んで力を溜め、change-tick で翼を広げて吠える
+  # このとき目と体の炎が赤くなり、impact-radius 以内の相手を吹き飛ばす（ダメージなし）
+  rage_shift:
+    weight: 0
+    animation: roar
+    end-ticks: 56
+    change-tick: 28
+    impact-radius: 9
+    knockback: 1.5
+    taken-damage-multiplier: 0.3
+
+  # 撃ち落とされる（抽選では選ばれない。extra.knockdown-* を満たすと、今の技を止めて始まる）
+  # fall-ticks で低く（exhausted-height）落ち、exhausted-ticks の間は動けない（受けるダメージ × exhausted-damage-multiplier）
+  knockdown:
+    animation: knockdown
+    fall-ticks: 20
+    exhausted-height: 1.3
+    exhausted-animation: exhausted
+    exhausted-ticks: 90
+    exhausted-end-animation: exhausted_end
+    exhausted-end-ticks: 16
+    exhausted-damage-multiplier: 1.4
+    # 撃ち落としたときに、戦っている人のアクションバーに出す
+    message: "<gold><bold>撃ち落とした！</bold></gold> <yellow>今のうちに叩け"
+
+  # 火炎ブレス: 標的から hover-distance 離れた、高さ hover-height の所へ飛んでいき、
+  # 首を上げて息を吸い（windup-ticks。のどが光る）、首を振りながら前方の地面を焼き払う（breath-ticks × sweeps）
+  # 炎は口から地面へ向かう円すい（cone-degrees）で、ブロックで止まる。腹の下や後ろは安全
+  flame_breath:
+    weight: 3
+    range: 26
+    hover-height: 3
+    hover-distance: 9
+    approach-speed: 0.65
+    approach-max-ticks: 40
+    start-animation: breath_start
+    windup-ticks: 24
+    loop-animation: breath_loop
+    breath-ticks: 50
+    sweeps: 1
+    # 首を振る幅（度）。sweeps 回、左右へ往復する
+    sweep-degrees: 80
+    cone-degrees: 12
+    # 炎の届く長さ（ブロック）
+    length: 16
+    # 炎に触れている間、hit-interval-ticks ごとに damage
+    damage: 4
+    hit-interval-ticks: 10
+    fire-ticks: 80
+    # 炎が当たった地面
+    burn-radius: 1.8
+    burn-ticks: 50
+    burn-damage: 2
+    burn-interval-ticks: 10
+    end-animation: breath_end
+    # 吐き終わってから（口から煙を吐いて首を振る隙）
+    end-ticks: 24
+
+  # 火球: 高めに浮いて、shoot-ticks（接近の後から）ごとに燃える岩を吐く。着く所に予告の輪が出る
+  # 動いている標的には、進む先（lead-ratio）を狙う。止まる・切り返すとかわしやすい
+  fireball:
+    weight: 2
+    range: 30
+    hover-height: 6
+    hover-distance: 12
+    approach-speed: 0.55
+    approach-max-ticks: 30
+    animation: spit
+    shoot-ticks: [10, 24, 38]
+    lead-ratio: 0.6
+    # 狙いのぶれ（ブロック）
+    spread-radius: 1.0
+    end-ticks: 20
+    fireball:
+      # 1tick に進む距離（ブロック）。0.8 なら12ブロック先まで約0.75秒
+      speed: 0.8
+      damage: 7
+      explosion-radius: 3
+      fire-ticks: 60
+      knockback: 0.6
+      burn-radius: 2.5
+      burn-ticks: 60
+      burn-damage: 2
+      burn-interval-ticks: 10
+      # 見た目のブロックと大きさ
+      block: MAGMA_BLOCK
+      size: 1.1
+      # 弾き返し: 火球がここまで来たとき（reflect-radius ブロック）にジャストガードすると、ドラゴンへ跳ね返る
+      # 当たると reflect-damage のダメージ（弾き返した人から）と、撃ち落としのたまり（必要な量に対する割合。ダメージのぶんとは別）
+      reflectable: true
+      reflect-radius: 2.5
+      reflect-speed: 1.4
+      reflect-damage: 30
+      reflect-knockdown: 0.3
+
+  # 急降下: 高く昇り（climb-height）、標的の足元に輪を出して狙う（aim-ticks。最後の lock-ticks は赤くなって止まる）。
+  # 決まった所へ翼をたたんで突っ込み（dive-speed）、地面すれすれで衝撃（impact-radius）。通り道の相手にも当たる（hit-radius）
+  # その後は勢いのまま低く滑空し（pull-ticks）、低く浮いて息を整える（recover-ticks。殴りどき）
+  dive:
+    weight: 2
+    range: 28
+    climb-height: 14
+    climb-ticks: 40
+    # 昇る速さ（ブロック/tick）
+    approach-speed: 0.7
+    climb-animation: dive_climb
+    aim-ticks: 30
+    lock-ticks: 10
+    aim-animation: dive_aim
+    dive-speed: 1.5
+    dive-max-ticks: 40
+    dive-animation: dive
+    # 突っ込む先の高さ（地面から当たり判定の底まで）
+    bottom-height: 1.0
+    # 通り道の当たり判定（体の中心からの距離）とダメージ
+    hit-radius: 2.6
+    damage: 9
+    impact-radius: 4.5
+    impact-damage: 7
+    knockback: 1.1
+    pull-animation: dive_pull
+    pull-ticks: 16
+    recover-animation: recover
+    recover-ticks: 40
+    recover-height: 1.3
+    recover-damage-multiplier: 1.3
+    # 続けて突っ込む回数
+    repeats: 1
+    # 着地点のまわりが燃える
+    burn-radius: 1.6
+    burn-ticks: 40
+    burn-damage: 2
+    burn-interval-ticks: 10
+    fire-ticks: 40
+
+  # 尻尾の薙ぎ払い: 標的の hover-distance 先へ低く（hover-height）降りてきて、体をひねって溜め（0.6秒）、
+  # 一回転して尻尾で払う。尻尾のボーン（bones）が通った所に当たる（hit-windows は振り始めてからの tick）
+  # 尻尾は体から離れた所を回るので、真下・すぐそばにもぐり込めば当たらない
+  tail_swipe:
+    weight: 2
+    range: 16
+    hover-height: 1.8
+    hover-distance: 4.5
+    approach-speed: 0.75
+    approach-max-ticks: 40
+    animation: tail_swipe
+    bones: [tail3, tail4, tail5]
+    # 尻尾の当たり判定の太さ（半径・ブロック）の最低値
+    min-blade-radius: 0.7
+    hit-windows: ["12-21"]
+    damage: 10
+    knockback: 1.6
+    # 振り終わってから少し低く浮いたまま（隙）
+    end-ticks: 46
+
+  # 翼の突風: 近く（range 以内）にいる相手を、翼を強く打ち下ろして吹き飛ばす（gust-ticks ごと）
+  # 真下にもぐり込み続ける相手への返し技。gust-radius 以内なら、近いほど強く飛ぶ
+  wing_gust:
+    weight: 2
+    range: 8
+    hover-height: 4
+    animation: gust
+    gust-ticks: [14, 30]
+    gust-radius: 9
+    damage: 3
+    knockback: 1.5
+    fire-ticks: 0
+    end-ticks: 44
+
+# ===== 本気モード（HP が extra.rage-health-ratio 以下） =====
+# 移行の演出の後、下の「_rage」の技と、業火の雨を使う（ほかの値は通常の技と同じ）
+
+  # 本気のブレス: 首を大きく振って、左右へ1往復する
+  flame_breath_rage:
+    weight: 3
+    range: 26
+    hover-height: 3
+    hover-distance: 9
+    approach-speed: 0.75
+    approach-max-ticks: 40
+    start-animation: breath_start
+    windup-ticks: 22
+    loop-animation: breath_loop
+    breath-ticks: 40
+    sweeps: 2
+    sweep-degrees: 120
+    cone-degrees: 13
+    length: 17
+    damage: 4.5
+    hit-interval-ticks: 10
+    fire-ticks: 100
+    burn-radius: 2.0
+    burn-ticks: 70
+    burn-damage: 2
+    burn-interval-ticks: 10
+    end-animation: breath_end
+    end-ticks: 24
+
+  # 本気の火球: 5発、速い。進む先を強めに狙う
+  fireball_rage:
+    weight: 2
+    range: 30
+    hover-height: 6
+    hover-distance: 12
+    approach-speed: 0.65
+    approach-max-ticks: 30
+    animation: spit
+    shoot-ticks: [10, 20, 30, 40, 50]
+    lead-ratio: 0.8
+    spread-radius: 1.2
+    end-ticks: 20
+    fireball:
+      speed: 1.0
+      damage: 7
+      explosion-radius: 3
+      fire-ticks: 80
+      knockback: 0.6
+      burn-radius: 2.5
+      burn-ticks: 80
+      burn-damage: 2
+      burn-interval-ticks: 10
+      block: MAGMA_BLOCK
+      size: 1.2
+      # 弾き返し: 火球がここまで来たとき（reflect-radius ブロック）にジャストガードすると、ドラゴンへ跳ね返る
+      # 当たると reflect-damage のダメージ（弾き返した人から）と、撃ち落としのたまり（必要な量に対する割合。ダメージのぶんとは別）
+      reflectable: true
+      reflect-radius: 2.5
+      reflect-speed: 1.4
+      reflect-damage: 30
+      reflect-knockdown: 0.3
+
+  # 本気の急降下: 2回続けて突っ込む。狙いが早く決まり、降下が速い
+  dive_rage:
+    weight: 2
+    range: 28
+    climb-height: 13
+    climb-ticks: 34
+    approach-speed: 0.8
+    climb-animation: dive_climb
+    aim-ticks: 24
+    lock-ticks: 9
+    aim-animation: dive_aim
+    dive-speed: 1.8
+    dive-max-ticks: 40
+    dive-animation: dive
+    bottom-height: 1.0
+    hit-radius: 2.6
+    damage: 9
+    impact-radius: 4.5
+    impact-damage: 7
+    knockback: 1.2
+    pull-animation: dive_pull
+    pull-ticks: 16
+    recover-animation: recover
+    recover-ticks: 44
+    recover-height: 1.3
+    recover-damage-multiplier: 1.3
+    repeats: 2
+    burn-radius: 1.8
+    burn-ticks: 60
+    burn-damage: 2
+    burn-interval-ticks: 10
+    fire-ticks: 60
+
+  # 本気の尻尾: 一回転した後、逆向きにもう一回転する
+  tail_swipe_rage:
+    weight: 2
+    range: 16
+    hover-height: 1.8
+    hover-distance: 4.5
+    approach-speed: 0.9
+    approach-max-ticks: 40
+    animation: tail_swipe_double
+    bones: [tail3, tail4, tail5]
+    min-blade-radius: 0.7
+    hit-windows: ["10-19", "24-33"]
+    damage: 10
+    knockback: 1.6
+    end-ticks: 60
+
+  # 本気の突風: 熱風になって、当たった相手が燃える
+  wing_gust_rage:
+    weight: 2
+    range: 8
+    hover-height: 4
+    animation: gust
+    gust-ticks: [14, 30]
+    gust-radius: 10
+    damage: 4
+    knockback: 1.7
+    fire-ticks: 60
+    end-ticks: 44
+
+  # 業火の雨（本気のときだけ）: 標的たちの真ん中の上へ高く昇り（rain-height）、ゆっくり回りながら
+  # cast-ticks の間、interval-ticks ごとに fireballs-per-wave 個の火球を降らせる（aim-ratio の割合で標的の足元を狙う）。
+  # その後は低く降りて（exhausted-height）疲れ果てる（exhausted-ticks。受けるダメージ × exhausted-damage-multiplier）
+  # 詠唱の間は高い所にいるので、弓で撃ち続ければ撃ち落とせる
+  inferno_rain:
+    weight: 1
+    range: 24
+    rain-height: 15
+    climb-ticks: 40
+    climb-animation: dive_climb
+    loop-animation: inferno_cast
+    cast-ticks: 160
+    interval-ticks: 8
+    fireballs-per-wave: 2
+    area-radius: 14
+    aim-ratio: 0.5
+    # 詠唱の間に受けるダメージの倍率
+    cast-damage-multiplier: 1.0
+    descend-ticks: 30
+    exhausted-height: 1.3
+    exhausted-animation: exhausted
+    exhausted-ticks: 100
+    exhausted-end-animation: exhausted_end
+    exhausted-end-ticks: 16
+    exhausted-damage-multiplier: 1.5
+    fireball:
+      speed: 0.7
+      damage: 7
+      explosion-radius: 3
+      fire-ticks: 60
+      knockback: 0.5
+      burn-radius: 2.2
+      burn-ticks: 50
+      burn-damage: 2
+      burn-interval-ticks: 10
+      block: MAGMA_BLOCK
+      size: 1.0
+      # 弾き返し: 火球がここまで来たとき（reflect-radius ブロック）にジャストガードすると、ドラゴンへ跳ね返る
+      # 当たると reflect-damage のダメージ（弾き返した人から）と、撃ち落としのたまり（必要な量に対する割合。ダメージのぶんとは別）
+      reflectable: true
+      reflect-radius: 2.5
+      reflect-speed: 1.4
+      reflect-damage: 30
+      reflect-knockdown: 0.3

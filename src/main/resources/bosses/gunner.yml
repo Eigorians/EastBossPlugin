@@ -1,0 +1,409 @@
+# ガンナー の設定
+# 時間はすべて tick（1秒 = 20tick）。技の tick は「技の開始から」の経過時間
+# 変更は /eb reload の後に召喚したボスから反映される
+#
+# 弾（bullet セクション）は目に見える速さで飛び、ブロックで止まる。壁の陰に隠れればかわせる
+#   speed                 … 1tick に進む距離（ブロック）。2.0 なら 1秒で40ブロック
+#   damage                … 1発のダメージ（damage-multiplier が掛かる前の値）
+#   hit-radius            … 相手の当たり判定をこれだけ広げて判定する
+#   max-range             … これだけ飛んだら消える
+#   spread-degrees        … 狙いのぶれ（度）
+#   ignore-invulnerability … true なら無敵時間を無視して続けて当たる（連射用）
+#   knockback             … 当たった相手を押す強さ
+#   color / size          … 弾の色（"#RRGGBB"）と太さ
+#   bounces               … ブロックで跳ね返る回数（跳弾。0 なら壁で止まる）
+#
+# 拳銃には弾数がある（extra.ammo）。撃ち尽くすと空撃ちの「カチッ」が鳴り、今の技の後にリロードする（殴りどき）
+
+# ===== 基本 =====
+name: "<gold>ガンナー"
+model: gunner
+# 見た目の大きさ。モデルは元が約2ブロックなので、1.25 で約2.6ブロック（プレイヤーより頭1つ以上大きい）
+model-scale: 1.25
+# 殴れる当たり判定の大きさ（ハスクの倍率）。1.3 で高さ約2.5ブロック
+entity-scale: 1.3
+max-health: 5200
+# ネザライト全身・ダメージ軽減IV・耐性I を想定。5 で拳銃1発が約0.7ハート、狙撃が約3.5ハート、手榴弾が約3ハート
+damage-multiplier: 5
+# 旅商人からのボス戦で、参加者が1人増えるごとに増やす HP の割合（0.2 なら 1人 1倍・2人 1.2倍・3人 1.4倍）
+health-per-player: 0.2
+# 召喚から消えるまでの時間（0 以下で無制限）。12000 = 10分
+lifetime-ticks: 12000
+
+# ===== 標的 =====
+target:
+  search-range: 28
+  max-height: 6
+
+# ===== ボスバー =====
+bossbar:
+  color: YELLOW
+  overlay: NOTCHED_10
+  range: 56
+
+# ===== 死亡 =====
+death:
+  animation: death
+  # 撃たれたようにのけぞり、膝をつき、うつ伏せに倒れる（2.4秒）
+  ticks: 60
+
+# ===== 盾 =====
+# 盾で防いだダメージ（damage-multiplier を掛けた後の値）が break-damage たまると盾が壊れ、disable-ticks の間使えなくなる
+# 2秒防がずにいると、ためた量が少しずつ減る（4秒で上限ぶん）。break-damage を 0 にすると壊れない
+# skill-multipliers: 技ごとに、防いだときにたまる量の倍率（技ID: 倍率。書いていない技は 1）
+shield:
+  # 拳銃7発・狙撃2発・手榴弾3個くらいで壊れる
+  # ジャストガードがあるので、ふつうのガードで受け続けたときは少し早めに壊れる（前は 100）
+  break-damage: 80
+  disable-ticks: 100
+
+# ===== 耐性 =====
+immunity:
+  # true なら矢などの飛び道具をすり抜ける。false なら当たる（ダメージは config.yml の boss.projectile-damage-multiplier 倍。初期値は半分）
+  projectile: false
+  potion: true
+  vertical-knockback: true
+
+# ===== ガンナー固有 =====
+extra:
+  # この HP の割合以下で本気になる（バイザーが赤くなり、ガトリングと3連続の狙撃を使う）
+  rage-health-ratio: 0.5
+  # バイザー（目）の色
+  visor-color: "#55E6FF"
+  visor-rage-color: "#FF2A2A"
+  # 拳銃の弾数（左右合わせて）。乱れ撃ち2回分。本気になると増える
+  ammo: 12
+  rage-ammo: 18
+  # この HP の割合以下で瀕死になる（すぐに決闘を使い、その後もときどき使う）
+  final-health-ratio: 0.2
+  # 召喚地点からこのブロック数より離れると、技の移動（横走り・バク宙）が召喚地点の方へ寄る（壁際に張り付かない）
+  home-radius: 10
+
+# ===== 技 =====
+# 近づかれると（min-range より近いと）銃の技は使わず、蹴りかバク宙で距離を取る
+skills:
+  # 登場の決めポーズ（召喚直後に1回）。両手の銃を回して、帽子のつばに触れる
+  spawn_pose:
+    weight: 0
+    animation: spawn
+    end-ticks: 40
+    # この間に受けるダメージの倍率
+    taken-damage-multiplier: 0.5
+
+  # 本気モードへの移行（HP が rage-health-ratio を下回った後、今の技が終わってから）
+  # うつむいて弾を込め直し、visor-change-tick で顔を上げるとバイザーが赤くなる
+  phase_shift:
+    weight: 0
+    animation: phase_shift
+    end-ticks: 52
+    visor-change-tick: 26
+    taken-damage-multiplier: 0.3
+
+  # リロード（弾を撃ち尽くした次に1回）。弾倉を振り出して空薬莢を落とし、弾を込める
+  reload:
+    weight: 0
+    animation: reload
+    end-ticks: 32
+    # 空薬莢を落とす・弾を込め始める・弾倉を戻す（ここで弾が満タンになる）tick
+    eject-tick: 6
+    insert-tick: 15
+    close-tick: 20
+    # この間に受けるダメージの倍率（殴りどき）
+    taken-damage-multiplier: 1.4
+
+  # 挑発（プレイヤーを倒した一撃の後）。銃口の煙を吹いて、銃を回し、帽子のつばに触れる
+  taunt:
+    weight: 0
+    animation: taunt
+    end-ticks: 36
+    smoke-tick: 10
+    taken-damage-multiplier: 1.0
+
+  # 二丁拳銃の乱れ撃ち: 構えて（レーザーサイトが消えたら撃ってくる）、左右交互に6発
+  # 撃つ瞬間の位置を狙うので、横に動き続ければかわせる
+  twin_burst:
+    weight: 3
+    animation: burst
+    range: 22
+    min-range: 4
+    # 撃つ tick（右から交互）。アニメの反動は 8〜28 の6発に合わせてある
+    shoot-ticks: [8, 12, 16, 20, 24, 28]
+    end-ticks: 40
+    bullet:
+      speed: 2.0
+      damage: 3
+      hit-radius: 0.25
+      max-range: 36
+      spread-degrees: 1.5
+      ignore-invulnerability: true
+      knockback: 0.12
+      color: "#FFD27A"
+      size: 0.8
+
+  # 本気のときの乱れ撃ち（9発・間隔が短い）
+  twin_burst_rage:
+    weight: 3
+    animation: burst
+    range: 24
+    min-range: 4
+    shoot-ticks: [8, 11, 14, 17, 20, 23, 26, 29, 32]
+    end-ticks: 42
+    bullet:
+      speed: 2.2
+      damage: 3
+      hit-radius: 0.25
+      max-range: 36
+      spread-degrees: 2.0
+      ignore-invulnerability: true
+      knockback: 0.12
+      color: "#FFB45A"
+      size: 0.8
+      # 本気の弾は壁で1回跳ね返る
+      bounces: 1
+
+  # 横走りしながら撃つ: 標的の周りを回りつつ、右手の銃で一定間隔に撃つ
+  strafe_fire:
+    weight: 3
+    animation: strafe
+    range: 20
+    min-range: 4
+    duration-ticks: 50
+    # 1tick に進む距離（0.3 で1秒に6ブロック）
+    speed: 0.3
+    # この距離を保とうとする
+    preferred-distance: 11
+    first-shot-tick: 10
+    shoot-interval-ticks: 12
+    # 撃つ何 tick 前からレーザーサイトを出すか
+    warning-ticks: 6
+    bullet:
+      speed: 2.2
+      damage: 2.5
+      hit-radius: 0.25
+      max-range: 36
+      spread-degrees: 1.0
+      ignore-invulnerability: true
+      knockback: 0.12
+      color: "#FFD27A"
+      size: 0.8
+
+  # 狙撃: 背中のライフルを抜き、レーザーで狙って、貫通する一撃を撃つ
+  # 狙う → 固定（白く点滅・もう動かない）→ 撃つ。固定されたら線から外れるか、壁の陰へ
+  snipe:
+    weight: 2
+    range: 32
+    min-range: 9
+    # 抜く（swap-tick で持ち替え）
+    draw-animation: snipe_draw
+    draw-ticks: 12
+    swap-tick: 6
+    aim-animation: snipe_aim
+    # 狙う時間と、固定してから撃つまで
+    aim-ticks: 40
+    next-aim-ticks: 24
+    lock-ticks: 12
+    fire-animation: snipe_fire
+    fire-animation-ticks: 16
+    stow-animation: snipe_stow
+    stow-ticks: 12
+    shots: 1
+    # レーザーが標的を追う速さ（度/tick）。遅いほど振り切りやすい
+    turn-speed: 4
+    damage: 9
+    # 盾を貫く（構えていた盾ごと撃ち抜く。ジャストガードも、ふつうのガードも効かない）。レーザーを見てよけるしかない
+    pierce-shield: true
+    max-range: 48
+    # 弾道の太さ（相手の当たり判定をこれだけ広げる）
+    hit-width: 0.35
+    knockback: 1.2
+    # 狙っている間に受けるダメージの倍率（近づいて殴るのも有効）
+    aim-damage-multiplier: 1.3
+
+  # 本気のときの狙撃: 3連続。2発目からは狙う時間が短い
+  snipe_rapid:
+    weight: 2
+    range: 32
+    min-range: 9
+    draw-animation: snipe_draw
+    draw-ticks: 12
+    swap-tick: 6
+    aim-animation: snipe_aim
+    aim-ticks: 30
+    next-aim-ticks: 16
+    lock-ticks: 10
+    fire-animation: snipe_fire
+    fire-animation-ticks: 16
+    stow-animation: snipe_stow
+    stow-ticks: 12
+    shots: 3
+    turn-speed: 4.5
+    damage: 7
+    # 盾を貫く（構えていた盾ごと撃ち抜く。ジャストガードも、ふつうのガードも効かない）。レーザーを見てよけるしかない
+    pierce-shield: true
+    max-range: 48
+    hit-width: 0.35
+    knockback: 1.0
+    aim-damage-multiplier: 1.3
+
+  # 手榴弾: 標的の足元と周りに3個。赤い輪（爆発の範囲）から出る。投げた後は右手の銃で追い打ち
+  grenade:
+    weight: 2
+    animation: grenade
+    range: 16
+    min-range: 5
+    # 左手に持つ・投げる・左手の銃を戻す tick（アニメに合わせてある）
+    grab-tick: 4
+    throw-tick: 15
+    return-tick: 24
+    end-ticks: 48
+    count: 3
+    # 2個目以降を標的の周りのどれくらいに散らすか
+    spread-radius: 4
+    # 飛んでいる時間と、放物線の高さ
+    flight-ticks: 18
+    arc-height: 4
+    # 着地してから爆発するまで
+    fuse-ticks: 30
+    explosion-radius: 3.5
+    damage: 8
+    knockback: 0.9
+    # 手榴弾の見た目のブロック
+    grenade-block: TNT
+    # 追い打ちの銃声の tick（アニメの反動に合わせてある）
+    shoot-ticks: [32, 40]
+    bullet:
+      speed: 2.0
+      damage: 2.5
+      hit-radius: 0.25
+      max-range: 32
+      spread-degrees: 1.5
+      ignore-invulnerability: true
+      knockback: 0.12
+
+  # 蹴り: 近づかれたら前蹴りで大きく吹き飛ばす（右足のブーツで判定）
+  kick:
+    weight: 3
+    animation: kick
+    range: 5
+    # 蹴る前に、相手の目の前（approach-distance）まで素早く踏み込む
+    approach-speed: 0.7
+    approach-distance: 1.8
+    approach-max-ticks: 10
+    approach-animation: walk
+    # すね〜ブーツで判定（伸びていく足の通り道すべてに当たる）
+    bones: [boot_r, shin_r]
+    shape: BOX
+    # 0.3〜0.6秒（6〜12tick）に膝から足が伸びきる
+    hit-windows: ["6-12"]
+    end-ticks: 18
+    damage: 6
+    # 吹き飛ばす強さ
+    knockback: 1.6
+
+  # バク宙: 近づかれたら後ろへ宙返りして距離を取り、逆さまの頂点で二丁撃ち
+  backflip:
+    weight: 2
+    animation: backflip
+    # この距離以内に相手がいるときだけ使う
+    range: 5
+    end-ticks: 15
+    # 跳んで移動する区間と距離（真後ろから side-angle 度までずれる）
+    move-start-tick: 3
+    move-end-tick: 12
+    distance: 7
+    side-angle: 25
+    # 宙返りの頂点（アニメの 0.3秒）
+    shoot-ticks: [6]
+    # 跳んでいる間に受けるダメージの倍率
+    taken-damage-multiplier: 0.4
+    # 壁際に追い込まれている（背中側に3ブロックの余裕がない）間は、選ばれやすさがこの倍数になる。
+    # 後ろが壁なら、開けている横や斜め前へ跳んで抜け出す
+    cornered-weight-multiplier: 4
+    bullet:
+      speed: 2.0
+      damage: 2.5
+      hit-radius: 0.3
+      max-range: 28
+      spread-degrees: 3
+      ignore-invulnerability: true
+      knockback: 0.1
+
+  # ガトリング掃射（本気のときだけ）: 4秒撃ち続ける。向きを変える速さに限りがあるが、照準から外れている間は
+  # だんだん速く振り向き（turn-acceleration・最大 max-turn-speed）、動きを見越して狙う（lead-ratio）。
+  # 同じ向きに回り続けるだけでは逃げ切れない。切り返すか、壁の陰に隠れる（弾はブロックで止まる）
+  # 当たると少しの間鈍足になる（制圧射撃）。標的が隠れたままだと、見えているほかの相手を撃つ（retarget-ticks）
+  # 撃ち終わると焼き付いて、うずくまる（殴りどき）
+  gatling:
+    weight: 2
+    range: 24
+    min-range: 0
+    start-animation: gatling_start
+    # 取り出して構えるまで（swap-tick で持ち替え。最後の 10tick は銃口から赤いレーザー）
+    start-ticks: 28
+    swap-tick: 6
+    fire-animation: gatling_fire
+    fire-duration-ticks: 100
+    shoot-interval-ticks: 2
+    # 向きを変える速さ（度/tick）。照準から 8度以上外れている間は、1tick ごとに turn-acceleration ずつ速くなる
+    # ジャストガードで受けられるので、走って振り切ることはほぼできない強さにしてある（物陰に隠れれば弾は止まる）
+    turn-speed: 4.5
+    turn-acceleration: 0.6
+    max-turn-speed: 14.0
+    # 標的の動きをどれだけ見越して狙うか（0 なら今いる所。1 で弾が届くまでの移動ぶん先＝まっすぐ走っても当たる）
+    lead-ratio: 1.0
+    # 制圧射撃: 当たった相手を鈍足にする時間と強さ（1 = 鈍足II）
+    hit-slow-ticks: 24
+    hit-slow-amplifier: 1
+    # 標的が見えない状態がこの tick 続いたら、見えているほかの相手に照準を移す（0 で移さない）
+    retarget-ticks: 10
+    overheat-animation: gatling_overheat
+    overheat-ticks: 20
+    cooldown-animation: gatling_cooldown
+    cooldown-ticks: 55
+    end-animation: gatling_end
+    end-animation-ticks: 20
+    end-swap-tick: 10
+    # 焼き付き〜冷却中に受けるダメージの倍率
+    overheat-damage-multiplier: 1.4
+    bullet:
+      speed: 3.4
+      # 1発ごとに約1.7ハート（想定の装備で）。当たるのは無敵時間で 0.5秒に1回まで＝受け続けると 5秒で倒れる
+      damage: 5.0
+      hit-radius: 0.45
+      max-range: 40
+      spread-degrees: 1.2
+      # 弾が多いので、無敵時間は普通にかかる（0.5秒に1回まで当たる）
+      ignore-invulnerability: false
+      knockback: 0.05
+      color: "#FFB040"
+      size: 0.7
+
+  # 決闘（瀕死のときだけ）: コインを弾き、鐘が3回鳴り終わると同時に、射程内の相手全員を早撃ちで撃ち抜く。**ジャストガードしなければ即死**
+  # 弾は物陰も貫く（隠れても無駄）。撃たれる人には、撃つ cue-lead-ticks 前に撃鉄の音とアクションバーの合図が届く
+  # その瞬間に盾を構えればジャストガードで無傷。盾を構えっぱなし・構えていない・防具で耐えるはどれも即死。殴っても止まらない
+  duel:
+    weight: 1
+    range: 32
+    ready-animation: duel_ready
+    # 構えるまで（coin-tick でコインを弾く）
+    ready-ticks: 24
+    coin-tick: 6
+    coin-height: 4
+    wait-animation: duel_wait
+    # 鐘が鳴り終わるまで（bells 回、等間隔。最後の鐘で撃つ）
+    wait-ticks: 60
+    bells: 3
+    draw-animation: duel_draw
+    draw-ticks: 18
+    # 早撃ちの tick（撃ち始めから）。1つにつき1人（近い順）。アニメの反動は 2・4・6 に合わせてある
+    shoot-ticks: [2, 4, 6, 8, 10, 12]
+    # 撃つ何 tick 前に、撃たれる人へ合図（撃鉄の音・アクションバー）を出すか。ジャストガードの受付（config.yml の just-guard.window-ticks）より少し長く
+    cue-lead-ticks: 7
+    # ジャストガードできなかったときのダメージ（即死。防いだり耐えたりしても体力を 0 にする）
+    damage: 1000
+    knockback: 1.0
+    # 表示（MiniMessage）
+    warn-title: "<dark_red><bold>決闘"
+    warn-subtitle: "<gray>撃鉄の音がしたら、盾を構えろ"
+    seen-message: "<red><bold>狙われている！</bold> <gray>撃鉄の音を聞き逃すな（盾を下ろして待て）"
+    cue-message: "<aqua><bold>今！ 盾を構えろ！"
